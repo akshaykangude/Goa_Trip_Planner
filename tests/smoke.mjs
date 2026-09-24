@@ -72,8 +72,12 @@ try {
   await W.page.goto(base + '/index.html');
   await login(W.page, 'Wife');
   await synced(W.page);
-  assert.equal(await W.page.evaluate(() => document.documentElement.scrollWidth), 390, 'no sideways scroll on phone');
-  step('second phone joins, loads the shared plan, fits a phone screen');
+  assert.equal(await W.page.evaluate(() => document.documentElement.clientWidth), 1280, 'phones open in PC view by default');
+  assert.equal(await W.page.locator('#planTbl tbody tr').count(), 9, 'timetable visible in PC view');
+  await W.page.click('#viewBtn');                       // switch to the phone layout (remembered)
+  await W.page.waitForSelector('#planTbl tbody tr'); await synced(W.page);
+  assert.equal(await W.page.evaluate(() => document.documentElement.scrollWidth), 390, 'phone view: no sideways scroll');
+  step('second phone joins in PC view, switches to phone view, still synced');
   await shot(W.page, '02-wife-phone');
 
   // ── 3. wrong passcode is refused

@@ -2,7 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" id="vp" content="width=device-width, initial-scale=1">
+<script>
+/* PC view on phones: phones get the same layout as a laptop (pinch to zoom).
+   The "📱 Phone view / 🖥 PC view" button switches; the choice is remembered on that phone. */
+(function(){
+  var mode='pc'; try{ mode=localStorage.getItem('goaTripPlanner.v1.view')||'pc'; }catch(e){}
+  var small=Math.min(screen.width,screen.height)<900;
+  if(mode==='pc' && small){ document.getElementById('vp').setAttribute('content','width=1280'); document.documentElement.classList.add('pcview'); }
+  window.toggleView=function(){ var next=document.documentElement.classList.contains('pcview')?'phone':'pc';
+    try{ localStorage.setItem('goaTripPlanner.v1.view',next); }catch(e){} location.reload(); };
+  window.isSmallScreen=small;
+})();
+</script>
+<style>html{-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
 <title>Goa Explore &amp; Reviews</title>
 <meta name="theme-color" content="#0f8b8d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%8E%3C/text%3E%3C/svg%3E">
@@ -106,6 +119,8 @@ h2{font-family:Fraunces,serif;font-size:24px;margin:22px 0 4px}
     <div class="top">
       <a class="back" href="index.html">← Trip planner</a>
       <span id="syncSlot"></span>
+      <button type="button" class="btn" id="viewBtn" onclick="toggleView()" style="display:none"></button><script>(function(){ var b=document.getElementById('viewBtn'); if(!b||!window.isSmallScreen) return; b.style.display='';
+  b.textContent=document.documentElement.classList.contains('pcview')?'📱 Phone view':'🖥 PC view'; })();</script>
     </div>
     <h1>Explore &amp; “Should I go?”</h1>
     <p>Cafés, dinner spots, clubs, beaches and sights, sorted by area and matched to your plan. Type any hotel, restaurant or place name, or paste a Google Maps link. You'll get a verdict from its ratings and newest reviews, then pick a day and time slot and see whether anything better is nearby.</p>
