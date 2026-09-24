@@ -1,5 +1,13 @@
 # 🌴 Goa Trip Planner
 
+## 👉 Open the planner: **[https://akshaykangude.github.io/Goa_Trip_Planner/](https://akshaykangude.github.io/Goa_Trip_Planner/)**
+
+| 🗓️ Trip planner | 🔎 Explore & "Should I go?" | 📱 Offline copy |
+|---|---|---|
+| [Open planner](https://akshaykangude.github.io/Goa_Trip_Planner/) | [Open Explore](https://akshaykangude.github.io/Goa_Trip_Planner/explore.html) | [Download offline file](https://github.com/akshaykangude/Goa_Trip_Planner/raw/main/offline/Goa-Trip-Planner-OFFLINE.html) |
+
+Works on any phone or computer. Tap the link, pick your name, and enter the trip passcode. Then use **Add to Home Screen** so it opens like an app.
+
 > 👉 **New here? Open [START-HERE.md](START-HERE.md)**. It covers the offline file (no setup) and the full online setup, step by step.
 
 A shared, phone-friendly trip planner for **Goa · 25 Sep – 3 Oct 2026**.

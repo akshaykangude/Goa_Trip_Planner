@@ -9,19 +9,19 @@ You need: a **GitHub** account and a **Google** account (the one whose Drive wil
 
 ## 1 · Put the code on GitHub (5 min)
 
-1. On github.com, click **＋ → New repository**. Name it `goa-trip-planner` and choose **Public**, because free GitHub Pages needs public. Don't add a README, then click **Create**.
-2. On your laptop, in the unzipped `goa-trip-planner` folder:
+1. On github.com, click **＋ → New repository**. Name it `Goa_Trip_Planner` and choose **Public**, because free GitHub Pages needs public. Don't add a README, then click **Create**.
+2. On your laptop, in the unzipped `Goa_Trip_Planner` folder:
    ```bash
    git init
    git add .
    git commit -m "Goa trip planner"
    git branch -M main
-   git remote add origin https://github.com/<YOUR-USERNAME>/goa-trip-planner.git
+   git remote add origin https://github.com/akshaykangude/Goa_Trip_Planner.git
    git push -u origin main
    ```
    *No git?* Install **GitHub Desktop**, then choose *File → Add local repository → Publish*. Avoid drag-and-drop upload in the browser: it skips the hidden `.github` folder that holds the automations.
 3. Go to **Settings → Pages → Build and deployment**. Set **Source: Deploy from a branch**, **Branch: `main` / `(root)`**, then **Save**.
-4. ✅ After 1–2 minutes, `https://<YOUR-USERNAME>.github.io/goa-trip-planner/` opens the planner. At this point it works on one phone only; step 3 turns on sharing.
+4. ✅ After 1–2 minutes, `https://akshaykangude.github.io/Goa_Trip_Planner/` opens the planner. At this point it works on one phone only; step 3 turns on sharing.
 
 ## 2 · Create the backend in Google Apps Script (10 min)
 
@@ -82,10 +82,10 @@ The backend caps live lookups at **300 per day** and caches each result for 6 ho
 ## 6 · Share with the group
 
 Send this on WhatsApp:
-> 🌴 Trip planner: https://<YOUR-USERNAME>.github.io/goa-trip-planner/
+> 🌴 Trip planner: https://akshaykangude.github.io/Goa_Trip_Planner/
 > Passcode: `sunset-goa-26`
 > Open it → pick your name → enter the passcode. Then *Share → Add to Home Screen* so it opens like an app.
-> Guide: https://github.com/<YOUR-USERNAME>/goa-trip-planner/blob/main/docs/USER-GUIDE.md
+> Guide: https://github.com/akshaykangude/Goa_Trip_Planner/blob/main/docs/USER-GUIDE.md
 
 ## 7 · Final check with two phones (3 min)
 

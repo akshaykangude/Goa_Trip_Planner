@@ -1,5 +1,7 @@
 # 🌴 START HERE: Goa Trip Planner
 
+**Live website:** [https://akshaykangude.github.io/Goa_Trip_Planner/](https://akshaykangude.github.io/Goa_Trip_Planner/) · **Repo:** [https://github.com/akshaykangude/Goa_Trip_Planner](https://github.com/akshaykangude/Goa_Trip_Planner)
+
 There are two ways to use this, depending on how much time you have.
 
 | | What you get | Setup |
@@ -17,14 +19,14 @@ Send `offline/Goa-Trip-Planner-OFFLINE.html` to your phone (WhatsApp to yourself
 ## B · Online: from zip to live website
 
 **1 · Get the code onto GitHub (5 min)**
-1. Create an account on github.com. Click **＋ → New repository**, name it `goa-trip-planner`, choose **Public**, leave README **unticked**, then click **Create**.
+1. Create an account on github.com. Click **＋ → New repository**, name it `Goa_Trip_Planner`, choose **Public**, leave README **unticked**, then click **Create**.
 2. Push **from inside this folder**. `index.html` must be at the top of the repo, not inside a sub-folder.
    - **GitHub Desktop:** File → Add local repository → this folder → *create a repository* → **Publish repository**. Untick "Keep this code private".
    - **Terminal:**
      ```bash
      git init && git add . && git commit -m "Goa trip planner"
      git branch -M main
-     git remote add origin https://github.com/YOUR-USERNAME/goa-trip-planner.git
+     git remote add origin https://github.com/akshaykangude/Goa_Trip_Planner.git
      git push -u origin main
      ```
    - ❌ Don't drag-and-drop the files on the GitHub website: it drops the hidden `.github` folder, which holds the automations.
@@ -32,7 +34,7 @@ Send `offline/Goa-Trip-Planner-OFFLINE.html` to your phone (WhatsApp to yourself
 
 **2 · Put it online (2 min)**
 Go to **Settings → Pages**. Set Source **Deploy from a branch**, Branch **main**, folder **/ (root)**, then click **Save**.
-✅ In 1–2 minutes, `https://YOUR-USERNAME.github.io/goa-trip-planner/` shows the timetable.
+✅ In 1–2 minutes, `https://akshaykangude.github.io/Goa_Trip_Planner/` shows the timetable.
 
 **3 · Shared backend on Google (10 min)**
 1. Open script.google.com and click **New project**. Name it `Goa Trip Backend`.
@@ -57,7 +59,7 @@ On GitHub, edit `assets/config.js` → `API_URL: "<your /exec URL>",` → **Comm
 In console.cloud.google.com, enable **Places API (New)** and create an **API key**. Add it in Apps Script as the Script property `PLACES_API_KEY`, then run **testPlaces**. Full details are in `docs/SETUP.md`, step 5.
 
 **7 · Share on WhatsApp**
-> 🌴 https://YOUR-USERNAME.github.io/goa-trip-planner/ · passcode: ●●●● · Open → pick your name → passcode → *Add to Home Screen*
+> 🌴 https://akshaykangude.github.io/Goa_Trip_Planner/ · passcode: ●●●● · Open → pick your name → passcode → *Add to Home Screen*
 
 ---
 
