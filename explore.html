@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goa Explore &amp; Reviews</title>
+<meta name="theme-color" content="#0f8b8d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%8E%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="assets/config.js"></script>
+<script src="assets/tripdata.js"></script>
+<script src="assets/sync.js"></script>
+<script src="assets/guide-data.js"></script>
+<style>
+:root{
+  --bg:#fbf6ee; --surface:#ffffff; --surface-2:#f4ece0; --ink:#1f2a2e; --muted:#6b767a; --line:#e6dccd;
+  --sun:#f2703a; --sun-2:#ffb347; --sea:#0f8b8d; --sea-2:#d8f0ee; --plum:#7b4bb7;
+  --great:#1f9d6b; --good:#0f8b8d; --meh:#d99a1e; --bad:#d64545; --shadow:0 6px 24px rgba(60,40,10,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0f1719; --surface:#162124; --surface-2:#1d2b2f; --ink:#e8efee; --muted:#93a3a6; --line:#2a3a3e; --sea-2:#123436; --shadow:0 6px 24px rgba(0,0,0,.35); }
+}
+:root[data-theme="dark"]{ --bg:#0f1719; --surface:#162124; --surface-2:#1d2b2f; --ink:#e8efee; --muted:#93a3a6; --line:#2a3a3e; --sea-2:#123436; --shadow:0 6px 24px rgba(0,0,0,.35); }
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
+body{overflow-x:hidden}
+a{color:var(--sea)}
+.wrap{max-width:1300px;margin:0 auto;padding:0 16px 60px}
+.hero{background:linear-gradient(120deg,#0f8b8d 0%,#2bb3a3 45%,#f2703a 100%);color:#fff;padding:22px 16px 64px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:-5%;right:-5%;bottom:-40px;height:90px;background:var(--bg);border-radius:50% 50% 0 0/100% 100% 0 0}
+.hero-in{max-width:1300px;margin:0 auto;position:relative;z-index:1}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.back{color:#fff;text-decoration:none;font-weight:600;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:7px 12px;border-radius:999px;font-size:14px}
+h1{font-family:Fraunces,serif;font-weight:800;font-size:clamp(26px,5vw,44px);margin:0;line-height:1.05}
+.hero p{margin:6px 0 16px;opacity:.95;max-width:760px}
+.searchbox{display:flex;gap:8px;max-width:760px;background:var(--surface);border-radius:16px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.searchbox input{flex:1;min-width:0;border:none;background:transparent;color:var(--ink);font:16px Inter,system-ui,sans-serif;padding:10px 12px;outline:none}
+.searchbox button{border:none;background:var(--sun);color:#fff;font:700 15px Inter,system-ui,sans-serif;padding:10px 16px;border-radius:12px;cursor:pointer;white-space:nowrap}
+.hint{font-size:12px;opacity:.9;margin-top:8px}
+h2{font-family:Fraunces,serif;font-size:24px;margin:22px 0 4px}
+.sub{color:var(--muted);margin:0 0 12px;font-size:14px}
+.advisory{background:#fff4d6;color:#6a4b00;border:1px solid #f0d58a;border-radius:14px;padding:10px 14px;font-size:14px;margin:4px 0 8px}
+:root[data-theme="dark"] .advisory{background:#3a2f0e;color:#ffe29a;border-color:#6a5617}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .advisory{background:#3a2f0e;color:#ffe29a;border-color:#6a5617}}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:10px;cursor:pointer;font:600 13px Inter,system-ui,sans-serif;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{border-color:var(--sea)}
+.btn.pri{background:var(--sea);color:#fff;border-color:var(--sea)}
+.btn.sun{background:var(--sun);color:#fff;border-color:var(--sun)}
+.btn.sm{padding:5px 9px;font-size:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{border:1px solid var(--line);background:var(--surface);padding:6px 11px;border-radius:999px;font:600 12px Inter,system-ui,sans-serif;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;min-width:0}
+.card h3{margin:0;font-size:16px;line-height:1.25}
+.meta{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:flex-start}
+.ring{--p:70;--c:var(--good);flex:0 0 auto;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--surface-2) 0);position:relative}
+.ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+.ring b{position:relative;font:800 15px Inter,system-ui,sans-serif}
+.verdict{font-weight:700;font-size:13px}
+.t-great{--c:var(--great);color:var(--great)} .t-good{--c:var(--good);color:var(--good)} .t-meh{--c:var(--meh);color:var(--meh)} .t-bad{--c:var(--bad);color:var(--bad)}
+.ring.t-great,.ring.t-good,.ring.t-meh,.ring.t-bad{color:var(--ink)}
+.kv{font-size:13px;line-height:1.45}
+.kv b{font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink);margin:0 4px 4px 0}
+.pill.rate{background:#fff0c9;color:#8a5a00}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+.live{border-top:1px dashed var(--line);margin-top:6px;padding-top:8px;font-size:13px}
+.reasons{margin:4px 0;padding-left:18px;font-size:13px;line-height:1.5}
+.rev{border-left:3px solid var(--line);padding:4px 8px;margin:6px 0;font-size:13px;line-height:1.45}
+.rev .who{font-size:11px;color:var(--muted)}
+.rev .txt{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.rev .txt.full{-webkit-line-clamp:unset}
+.results{margin-top:16px;display:grid;gap:14px}
+.result{border:2px solid var(--line)}
+.result.t-great{border-color:var(--great)} .result.t-good{border-color:var(--good)} .result.t-meh{border-color:var(--meh)} .result.t-bad{border-color:var(--bad)}
+.result .big{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.result .ring{width:70px;height:70px}
+.result .ring b{font-size:20px}
+.result .verdict{font-size:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);margin-top:10px}
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.day{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.day h4{margin:0 0 6px;font-size:14px}
+.sg{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:13px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.sg:last-child{border-bottom:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}
+.dlg{background:var(--surface);border-radius:18px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow:auto}
+.dlg h3{margin:0 0 8px;font-family:Fraunces,serif}
+.dlg label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.dlg select,.dlg input{width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:14px Inter,system-ui,sans-serif}
+.dlg .rowb{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--sea);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <div class="top">
+      <a class="back" href="index.html">← Trip planner</a>
+      <span id="syncSlot"></span>
+    </div>
+    <h1>Explore &amp; “Should I go?”</h1>
+    <p>Cafés, dinner spots, clubs, beaches and sights, sorted by area and matched to your plan. Type any hotel, restaurant or place name, or paste a Google Maps link. You'll get a verdict from its ratings and newest reviews, then pick a day and time slot and see whether anything better is nearby.</p>
+    <form class="searchbox" id="qForm" autocomplete="off">
+      <input id="q" type="search" placeholder="Place name or paste a Google Maps link…" aria-label="Search a place">
+      <button type="submit">Should I go?</button>
+    </form>
+    <div class="hint" id="liveHint"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="advisory" id="advisory"></div>
+  <div class="results" id="results"></div>
+
+  <h2>🗓️ Picks for each day of your plan</h2>
+  <p class="sub">Based on where each day's plan takes you. Tap ＋ to drop a pick into lunch or dinner.</p>
+  <div class="panel"><div class="days" id="days"></div></div>
+
+  <h2>📚 The guide</h2>
+  <p class="sub" id="guideCount"></p>
+  <div class="chips" id="typeChips"></div>
+  <div class="chips" id="areaChips"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="modal" id="planModal"><div class="dlg">
+  <h3 id="pm-title">Add to plan</h3>
+  <p class="sub" id="pm-sub"></p>
+  <label>Day</label><select id="pm-day"></select>
+  <label>Time slot</label><select id="pm-slot"></select>
+  <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="pm-replace" style="width:auto"> Replace what's already in that slot</label>
+  <div class="rowb">
+    <button class="btn" data-close>Cancel</button>
+    <button class="btn" id="pm-list">Just add to my places list</button>
+    <button class="btn pri" id="pm-save">Add to plan</button>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+const KEY='goaTripPlanner.v1', LIVE=KEY+'.live';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const G=window.GOA_GUIDE||[], AREAS=window.GOA_AREAS||[], TYPES=window.GOA_TYPES||{};
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let S=null, type='all', area='all';
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+try{ const th=localStorage.getItem(KEY+'.theme'); if(th) document.documentElement.dataset.theme=th; }catch(e){}
+function parseD(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); }
+function dayLbl(d){ const dt=parseD(d.date); return dt.getDate()+' '+MON[dt.getMonth()]+' '+DOW[dt.getDay()]; }
+function mapsUrl(p){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(/goa|pune|kolhapur/i.test(p)?p:p+', Goa'); }
+function areaLabel(id){ return (AREAS.find(a=>a.id===id)||{label:id}).label; }
+function areaOf(text){ const t=String(text||'').toLowerCase(); const a=AREAS.find(a=>a.keys.some(k=>t.includes(k))); return a?a.id:null; }
+function guideFind(name){ const l=String(name||'').toLowerCase(); return G.find(g=>g.n.toLowerCase()===l) || G.find(g=>l.length>3&&(g.n.toLowerCase().includes(l)||l.includes(g.n.toLowerCase()))); }
+function tone(score){ return score>=8?'great':score>=6.5?'good':score>=5?'meh':'bad'; }
+function ring(score,big){ const t=tone(score); return `<div class="ring t-${t}" style="--p:${Math.round(score*10)}"><b>${score.toFixed(1)}</b></div>`; }
+function stars(n){ n=Math.round(+n||0); return '★'.repeat(n)+'☆'.repeat(Math.max(0,5-n)); }
+
+/* ---------- state (shared with the planner) ---------- */
+function save(){ S.savedAt=Date.now(); lsSet(KEY,S); if(window.TripSync) TripSync.dirty(); }
+async function loadState(){
+  S=lsGet(KEY);
+  if(!S){ // first visit on this phone → take the starting plan from the planner page
+    try{ const html=await (await fetch('index.html',{cache:'no-store'})).text();
+      const m=html.match(/<script type="application\/json" id="seed">([\s\S]*?)<\/script>/); if(m) S=JSON.parse(m[1]); }catch(e){}
+  }
+  if(S){ S.places=S.places||[]; S.expenses=S.expenses||[]; }
+}
+
+/* ---------- live Google data ---------- */
+function liveCache(){ return lsGet(LIVE)||{}; }
+function liveGet(q){ const c=liveCache()[q.toLowerCase()]; return c && Date.now()-c.t<24*3600e3 ? c.d : null; }
+function livePut(q,d){ const c=liveCache(); c[q.toLowerCase()]={t:Date.now(),d}; const keys=Object.keys(c); if(keys.length>80) delete c[keys[0]]; lsSet(LIVE,c); }
+function liveReady(){ return window.TripSync && TripSync.configured(); }
+async function liveSearch(q,ll){
+  const ck=q+(ll?'@'+ll.lat.toFixed(2)+','+ll.lng.toFixed(2):'');
+  const hit=liveGet(ck); if(hit) return Array.isArray(hit)?{places:hit}:hit;
+  if(!liveReady()) throw Object.assign(new Error('not_configured'),{code:'not_configured'});
+  const r=await TripSync.api('place',Object.assign({q},ll||{}));
+  if(!r.ok) throw Object.assign(new Error(r.error),{code:r.error,resolved:r.resolved});
+  const out={places:r.places||[],resolved:r.resolved||null}; livePut(ck,out); return out;
+}
+async function liveNearby(ll,kind){
+  const ck='nearby:'+kind+'@'+ll.lat.toFixed(3)+','+ll.lng.toFixed(3);
+  const hit=liveGet(ck); if(hit) return hit;
+  const r=await TripSync.api('nearby',{lat:ll.lat,lng:ll.lng,kind});
+  if(!r.ok) throw Object.assign(new Error(r.error),{code:r.error});
+  livePut(ck,r.places); return r.places;
+}
+function fallbackLinks(q){
+  const e=encodeURIComponent(q+' Goa');
+  return `<div class="acts"><a class="btn sm" target="_blank" rel="noopener" href="${mapsUrl(q)}">📍 Google Maps reviews ↗</a>
+    <a class="btn sm" target="_blank" rel="noopener" href="https://www.zomato.com/goa/restaurants?q=${encodeURIComponent(q)}">Zomato ↗</a>
+    <a class="btn sm" target="_blank" rel="noopener" href="https://www.tripadvisor.in/Search?q=${e}">Tripadvisor ↗</a></div>`;
+}
+function liveErrorMsg(err,q){
+  const why = err.code==='not_configured' ? 'Live reviews need the shared backend. Tap the sync pill at the top, or see docs/SETUP.md.'
+    : err.code==='no_places_key' ? 'Live reviews aren’t switched on yet. The trip owner needs to add a Google Places key (docs/SETUP.md, step 5).'
+    : '⚠️ '+esc(err.message||err);
+  return `<p class="empty">${why}</p>`+fallbackLinks(q);
+}
+const ATTR={outdoorSeating:'🌿 Outdoor seating',liveMusic:'🎶 Live music',servesCocktails:'🍸 Cocktails',goodForGroups:'👨‍👩‍👧 Good for groups',reservable:'📅 Takes reservations',servesVegetarianFood:'🥗 Veg options'};
+const PRICE={PRICE_LEVEL_FREE:'Free',PRICE_LEVEL_INEXPENSIVE:'₹',PRICE_LEVEL_MODERATE:'₹₹',PRICE_LEVEL_EXPENSIVE:'₹₹₹',PRICE_LEVEL_VERY_EXPENSIVE:'₹₹₹₹'};
+function liveBlock(p, compact){
+  const w=TripData.worth({rating:p.rating,count:p.count,reviews:p.reviews,status:p.status,openNow:p.openNow});
+  const tags=Object.keys(ATTR).filter(k=>p.attrs&&p.attrs[k]).map(k=>`<span class="pill">${ATTR[k]}</span>`).join('')+w.ambience.map(a=>`<span class="pill">✨ ${esc(a)}</span>`).join('');
+  const revs=(p.reviews||[]).slice(0,compact?2:5).map(r=>`<div class="rev"><div class="who">${stars(r.rating)} · ${esc(r.author||'Google user')} · ${esc(r.when||'')}</div><div class="txt">${esc(r.text)}</div></div>`).join('');
+  return {w, html:`
+    <div class="row" style="align-items:center">${ring(w.score)}<div><div class="verdict t-${w.tone}">${w.emoji} ${w.verdict}</div>
+      <div class="meta">${p.rating?'★ '+p.rating+' · '+(p.count||0).toLocaleString('en-IN')+' reviews':''}${p.price?' · '+(PRICE[p.price]||''):''}${p.openNow===true?' · 🟢 Open now':p.openNow===false?' · 🔴 Closed now':''}</div></div></div>
+    <ul class="reasons">${w.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>
+    ${p.summary?`<div class="kv">📝 ${esc(p.summary)}</div>`:''}
+    <div>${tags}</div>
+    ${revs?`<div class="meta" style="margin-top:4px">Newest Google reviews (tap to expand):</div>${revs}`:''}
+    <div class="meta">Source: Google reviews · ${esc(p.address||'')}</div>`};
+}
+
+/* ---------- search engine (name or Google Maps link) ---------- */
+let userLoc=null, target=null;
+try{ userLoc=JSON.parse(sessionStorage.getItem(KEY+'.loc')); }catch(e){}
+$('#qForm').addEventListener('submit',async e=>{
+  e.preventDefault(); let q=$('#q').value.trim(); if(q.length<2){ toast('Type a place name or paste a Google Maps link'); return; }
+  const url=TripData.findMapsUrl(q), fromLink=url?TripData.parseMapsUrl(url):null;
+  if(url) q=url;
+  const shown=fromLink&&fromLink.name?fromLink.name:(url?'your Maps link':q);
+  const box=$('#results'); let g=guideFind(fromLink&&fromLink.name?fromLink.name:q);
+  box.innerHTML=(g?`<div class="card result t-${tone(g.score)}"><div class="meta">From our guide</div>${cardBody(g,true)}</div>`:'')+
+    `<div class="card result" id="liveRes"><div class="meta">Live Google check for ${esc(shown)}</div><div><span class="spin"></span> ${url?'Opening the link, then reading':'Reading'} ratings &amp; newest reviews…</div></div>`+
+    `<div class="card" id="cmpBox"></div>`;
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+  const lr=$('#liveRes');
+  target={name:fromLink&&fromLink.name||(!url?q:''), lat:fromLink&&fromLink.lat, lng:fromLink&&fromLink.lng, score:g?g.score:null, kind:g?kindOfGuide(g):null, area:g?g.a:areaOf(q), link:url||''};
+  try{
+    const res=await liveSearch(q, url?null:userLoc), places=res.places||[];
+    if(res.resolved&&res.resolved.name&&!target.name) target.name=res.resolved.name;
+    if(!places.length){ lr.innerHTML=`<p class="empty">Google found nothing for ${esc(shown)} in Goa. Try adding the area (e.g. “${esc(q)} Anjuna”).</p>`+fallbackLinks(target.name||q); }
+    else {
+      const p0=places[0], w0=TripData.worth({rating:p0.rating,count:p0.count,reviews:p0.reviews,status:p0.status,openNow:p0.openNow});
+      Object.assign(target,{name:p0.name,id:p0.id,lat:p0.lat,lng:p0.lng,score:w0.score,kind:kindOfType(p0.type)||target.kind,area:areaOf(p0.address+' '+p0.name)||target.area,maps:p0.maps});
+      if(!g){ g=guideFind(p0.name); }
+      lr.outerHTML=places.slice(0,url?1:3).map((p,i)=>{ const b=liveBlock(p,i>0); const gg=guideFind(p.name);
+        return `<div class="card result t-${b.w.tone}"><div class="meta">${url?'From your link':i===0?'Best match':'Also found'} · ${esc(p.type||'')}</div><h3 style="font-size:19px">${esc(p.name)}</h3>
+        ${b.html}${gg?`<div class="kv">📚 <b>Our note:</b> ${esc(gg.vibe)} <b>Try:</b> ${esc(gg.try)}</div>`:''}
+        <div class="acts"><a class="btn sm" target="_blank" rel="noopener" href="${esc(p.maps||mapsUrl(p.name))}">📍 Maps ↗</a><button class="btn sm pri" data-plan="${esc(p.name)}">＋ Add to plan</button></div></div>`; }).join('');
+    }
+  }catch(err){
+    if(err.resolved&&err.resolved.name){ target.name=err.resolved.name; g=g||guideFind(target.name); }
+    lr.innerHTML=`<div class="meta">Live Google check for ${esc(target.name||shown)}</div>`+liveErrorMsg(err,target.name||(url?'':q));
+    if(url&&!target.name) lr.innerHTML+=`<p class="empty">Short links (maps.app.goo.gl) can only be opened by the shared backend. Paste the place name instead, or open the link and copy the name.</p>`;
+  }
+  if(g&&target.score==null){ target.score=g.score; target.kind=kindOfGuide(g); target.area=g.a; }
+  if(!target.name) target.name=g?g.n:(url?'':q);
+  renderCompare();
+});
+
+/* ---------- "When do you want to go?" + better options nearby ---------- */
+const SLOT_KIND=['cafe','cafe','restaurant','restaurant','restaurant','sight','bar','restaurant','bar','bar'];
+const KIND_OK={cafe:[0,1,2,3,4,5],restaurant:[2,3,4,6,7,8],bar:[5,6,7,8,9],sight:[1,2,3,4,5,6]};
+const KIND_LBL={cafe:'cafés',restaurant:'restaurants',bar:'bars & clubs',sight:'places to see'};
+function kindOfGuide(g){ return {cafe:'cafe',restaurant:'restaurant',nightlife:'bar',beach:'sight',sight:'sight',activity:'sight',market:'sight'}[g.t]||null; }
+function kindOfType(t){ t=String(t||'').toLowerCase(); if(!t) return null;
+  if(/caf|coffee|bakery|tea/.test(t)) return 'cafe'; if(/bar|club|pub|lounge|night/.test(t)) return 'bar';
+  if(/restaurant|food|dining|diner|grill|pizz|seafood/.test(t)) return 'restaurant'; if(/attraction|fort|beach|church|museum|park|landmark|temple|market/.test(t)) return 'sight'; return null; }
+function slotKind(c){ return target&&target.kind&&(KIND_OK[target.kind]||[]).includes(+c) ? target.kind : SLOT_KIND[c]||'restaurant'; }
+function nowSlotIdx(){ const h=new Date().getHours(); return h<6?9:Math.min(9,Math.floor((h-6)/2)+(new Date().getMinutes()>40?1:0)); }
+function renderCompare(){
+  const box=$('#cmpBox'); if(!box) return;
+  if(!S||!S.days){ box.innerHTML='<p class="empty">Open the trip planner once to plan this place.</p>'; return; }
+  const qs=new URLSearchParams(location.search), today=new Date().toISOString().slice(0,10);
+  const ti=S.days.findIndex(d=>d.date===today);
+  const day= qs.get('day')!=null? +qs.get('day') : (ti>=0?ti:0);
+  const g=guideFind(target.name);
+  const best= qs.get('slot')!=null? +qs.get('slot') : ti>=0? nowSlotIdx() : (g&&/breakfast|morning/i.test(g.best)?1:g&&/lunch/i.test(g.best)?3:g&&/sunset/i.test(g.best)?6:target.kind==='bar'?8:target.kind==='cafe'?1:7);
+  box.innerHTML=`<h3>🗓️ When do you want to go${target.name?' to '+esc(target.name):''}?</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:6px">
+      <label class="meta">Day<select id="cmpDay" class="btn" style="width:100%;margin-top:4px">${S.days.map((d,r)=>`<option value="${r}">${dayLbl(d)}</option>`).join('')}</select></label>
+      <label class="meta">Time slot<select id="cmpSlot" class="btn" style="width:100%;margin-top:4px">${S.cols.map((c,i)=>`<option value="${i}">${esc(c)}</option>`).join('')}</select></label>
+    </div>
+    <div class="acts" style="margin-top:8px">
+      ${target.name?`<button class="btn pri" id="cmpAdd">＋ Add ${esc(target.name)} to this slot</button>`:''}
+      <button class="btn" id="cmpLoc">${userLoc?'📍 Using your location ✓':'📍 Use my current location'}</button>
+    </div>
+    <div id="cmpNow" class="meta" style="margin-top:6px"></div>
+    <h3 style="margin-top:12px">✨ Better options nearby?</h3><div id="cmpAlt"><span class="spin"></span></div>`;
+  $('#cmpDay').value=Math.min(day,S.days.length-1); $('#cmpSlot').value=Math.max(0,Math.min(best,S.cols.length-1));
+  $('#cmpDay').onchange=$('#cmpSlot').onchange=()=>{ showSlotNow(); loadAlternatives(); };
+  const add=$('#cmpAdd'); if(add) add.onclick=()=>addToPlan(target.name,+$('#cmpDay').value,+$('#cmpSlot').value,false,target.link||target.maps);
+  $('#cmpLoc').onclick=()=>{
+    if(!navigator.geolocation){ toast('Location not available on this device'); return; }
+    $('#cmpLoc').innerHTML='<span class="spin"></span> Finding you…';
+    navigator.geolocation.getCurrentPosition(pos=>{ userLoc={lat:pos.coords.latitude,lng:pos.coords.longitude}; try{ sessionStorage.setItem(KEY+'.loc',JSON.stringify(userLoc)); }catch(e){}
+      $('#cmpLoc').textContent='📍 Using your location ✓'; loadAlternatives(); },
+      err=>{ $('#cmpLoc').textContent='📍 Use my current location'; toast('Could not get location: '+(err.message||'permission denied')); }, {enableHighAccuracy:true,timeout:12000,maximumAge:120000});
+  };
+  showSlotNow(); loadAlternatives();
+}
+function showSlotNow(){ const d=S.days[+$('#cmpDay').value], c=+$('#cmpSlot').value; const cur=(d.cells[c]||'').replace(/\*\*/g,'');
+  $('#cmpNow').textContent = cur&&cur!=='—' ? 'Currently in this slot: '+cur+((d.place||{})[c]?' (📍 '+d.place[c]+')':'') : 'This slot is free.'; }
+function altRow(name,score,extra,link){
+  return `<div class="sg"><span>${ring(score).replace('class="ring','style="width:38px;height:38px" class="ring')} </span><span style="flex:1;min-width:0"><b>${esc(name)}</b><br><span class="meta">${extra}</span></span>
+    <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${link?`<a class="btn sm" target="_blank" rel="noopener" href="${esc(link)}">📍</a>`:''}<button class="btn sm pri" data-use="${esc(name)}">Use this</button></span></div>`;
+}
+async function loadAlternatives(){
+  const box=$('#cmpAlt'); if(!box) return;
+  const c=+$('#cmpSlot').value, kind=slotKind(c), center=userLoc||(target.lat!=null?{lat:target.lat,lng:target.lng}:null);
+  const base=target.score, lname=String(target.name||'').toLowerCase();
+  let html='';
+  // our guide: same area, fits the slot, scores higher
+  const gArea=target.area|| (center? null : null);
+  const gAlt=G.filter(x=>kindOfGuide(x)===kind && (!gArea||x.a===gArea) && x.n.toLowerCase()!==lname && (base==null||x.score>base+0.2)).sort((a,b)=>b.score-a.score).slice(0,3);
+  // live: popular places of that kind around you / the place
+  if(center&&liveReady()){
+    try{
+      const list=(await liveNearby(center,kind)).filter(p=>String(p.name).toLowerCase()!==lname && p.id!==target.id && p.status!=='CLOSED_PERMANENTLY')
+        .map(p=>({p,w:TripData.worth({rating:p.rating,count:p.count,reviews:p.reviews,status:p.status,openNow:p.openNow}),km:TripData.distanceKm(center,{lat:p.lat,lng:p.lng})}))
+        .filter(x=>base==null||x.w.score>base+0.2).sort((a,b)=>b.w.score-a.w.score||a.km-b.km).slice(0,4);
+      html+= list.length ? `<div class="meta">Top-rated ${KIND_LBL[kind]} within 3 km of ${userLoc?'you':esc(target.name)}${base!=null?' that beat '+base.toFixed(1):''}:</div>`+
+        list.map(x=>altRow(x.p.name,x.w.score,`★ ${x.p.rating||'–'} (${(x.p.count||0).toLocaleString('en-IN')}) · ${x.km!=null?x.km+' km':''}${x.p.openNow===true?' · 🟢 open':x.p.openNow===false?' · 🔴 closed now':''}${x.w.loves.length?' · loved for '+esc(x.w.loves.slice(0,2).join(', ')):''}`,x.p.maps)).join('')
+        : `<p class="empty">✅ Nothing clearly better nearby for ${esc(S.cols[c])} — ${esc(target.name||'your pick')} is a good choice.</p>`;
+    }catch(err){ html+=`<p class="empty">${err.code==='no_places_key'?'Live nearby suggestions need the Google Places key (docs/SETUP.md, step 5).':'⚠️ '+esc(err.message)}</p>`; }
+  } else if(!center){ html+=`<p class="meta">Tap “📍 Use my current location” to compare live with places around you.</p>`; }
+  else { html+=`<p class="meta">Connect the shared backend to compare live with places around you.</p>`; }
+  if(gAlt.length) html+=`<div class="meta" style="margin-top:8px">From our guide${gArea?' ('+esc(areaLabel(gArea).split('·')[0].trim())+')':''}, good for ${esc(S.cols[c])}:</div>`+gAlt.map(x=>altRow(x.n,x.score,esc(x.w)+' · '+esc(x.best),mapsUrl(x.n+' '+x.w))).join('');
+  box.innerHTML=html||'<p class="empty">No alternatives found.</p>';
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-use]'); if(!b||!$('#cmpSlot')) return;
+  addToPlan(b.dataset.use,+$('#cmpDay').value,+$('#cmpSlot').value,$('#cmpAdd')?false:false); });
+
+/* ---------- guide grid ---------- */
+function cardBody(g,big){
+  const w=TripData.worth({curatedScore:g.score});
+  return `<div class="row">${ring(g.score)}<div style="min-width:0"><h3 ${big?'style="font-size:19px"':''}>${esc(g.n)}</h3>
+    <div class="meta">${esc(TYPES[g.t]||g.t)} · ${esc(g.w)}</div><div class="verdict t-${tone(g.score)}">${w.emoji} ${w.verdict}</div></div></div>
+    <div>${g.rating?`<span class="pill rate">★ ${esc(g.rating)}</span>`:''}<span class="pill">${esc(g.price)}</span><span class="pill">${esc(areaLabel(g.a).split('·')[0])}</span></div>
+    <div class="kv">✨ ${esc(g.vibe)}</div>
+    ${g.try?`<div class="kv"><b>Try:</b> ${esc(g.try)}</div>`:''}
+    <div class="kv"><b>Best for:</b> ${esc(g.best)}</div>
+    ${g.tip?`<div class="kv">💡 ${esc(g.tip)}</div>`:''}
+    <div class="acts"><button class="btn sm" data-live="${esc(g.n)}">⚡ Live check</button><a class="btn sm" target="_blank" rel="noopener" href="${mapsUrl(g.n+' '+g.w)}">📍 Maps ↗</a><button class="btn sm pri" data-plan="${esc(g.n)}">＋ Add to plan</button></div>
+    <div class="live" data-livebox="${esc(g.n)}" hidden></div>`;
+}
+function renderChips(){
+  const types=['all',...Object.keys(TYPES)];
+  $('#typeChips').innerHTML=types.map(t=>`<button class="chip ${type===t?'on':''}" data-type="${t}">${t==='all'?'All ('+G.length+')':esc(TYPES[t])+' ('+G.filter(g=>g.t===t).length+')'}</button>`).join('');
+  $('#areaChips').innerHTML=`<button class="chip ${area==='all'?'on':''}" data-area="all">📍 All areas</button>`+AREAS.map(a=>`<button class="chip ${area===a.id?'on':''}" data-area="${a.id}">${esc(a.label)}${a.stay?' · '+a.stay:''}</button>`).join('');
+}
+function renderGrid(){
+  const list=G.filter(g=>(type==='all'||g.t===type)&&(area==='all'||g.a===area)).sort((a,b)=>b.score-a.score);
+  $('#guideCount').textContent=`${list.length} places · sorted by “worth your time” score · scores are our estimate, ⚡ Live check reads today’s Google reviews.`;
+  $('#grid').innerHTML=list.map(g=>`<div class="card">${cardBody(g)}</div>`).join('')||'<p class="empty">Nothing here with these filters.</p>';
+}
+$('#typeChips').addEventListener('click',e=>{ const b=e.target.closest('[data-type]'); if(!b) return; type=b.dataset.type; renderChips(); renderGrid(); });
+$('#areaChips').addEventListener('click',e=>{ const b=e.target.closest('[data-area]'); if(!b) return; area=b.dataset.area; renderChips(); renderGrid(); });
+
+document.addEventListener('click',async e=>{
+  const lv=e.target.closest('[data-live]');
+  if(lv){ const name=lv.dataset.live, g=guideFind(name), box=document.querySelector(`[data-livebox="${CSS.escape(name)}"]`); if(!box) return;
+    box.hidden=false; box.innerHTML='<span class="spin"></span> Checking Google…';
+    try{ const places=await liveSearch(g?g.n+' '+g.w:name); const p=places[0];
+      box.innerHTML=p? liveBlock(p,false).html : '<p class="empty">No Google match found.</p>'+fallbackLinks(name); }
+    catch(err){ box.innerHTML=liveErrorMsg(err,name); }
+    return; }
+  const t=e.target.closest('.rev .txt'); if(t){ t.classList.toggle('full'); return; }
+  const pl=e.target.closest('[data-plan]'); if(pl){ openPlan(pl.dataset.plan, pl.dataset.day, pl.dataset.slot); return; }
+  if(e.target.matches('.modal')||e.target.hasAttribute('data-close')) closeModal();
+});
+function closeModal(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on')); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ---------- add to plan ---------- */
+let planName='';
+function openPlan(name,day,slot){
+  if(!S||!S.days){ toast('Open the trip planner once first'); return; }
+  planName=name; const g=guideFind(name);
+  $('#pm-title').textContent='＋ '+name; $('#pm-sub').textContent=g?(TYPES[g.t]+' · '+g.w+' · best for '+g.best):'';
+  $('#pm-day').innerHTML=S.days.map((d,r)=>`<option value="${r}">${dayLbl(d)}</option>`).join('');
+  $('#pm-slot').innerHTML=S.cols.map((c,i)=>`<option value="${i}">${esc(c)}</option>`).join('');
+  const bestSlot = g&&/breakfast|morning/i.test(g.best)?1 : g&&/lunch/i.test(g.best)?3 : g&&/sunset/i.test(g.best)?6 : g&&/10 PM|late|night/i.test(g.best)?8 : (g&&(g.t==='restaurant'||g.t==='nightlife'))?7 : 4;
+  $('#pm-day').value = day!=null ? day : Math.max(0,S.days.findIndex(d=>d.date===new Date().toISOString().slice(0,10)));
+  $('#pm-slot').value = slot!=null ? slot : bestSlot;
+  $('#pm-replace').checked=false;
+  $('#planModal').classList.add('on');
+}
+const ICON={cafe:'☕',restaurant:'🍽️',nightlife:'🔥',beach:'🏖️',sight:'🏰',activity:'🛶',market:'🛍️'};
+const PTYPE={cafe:'Food',restaurant:'Food',nightlife:'Nightlife',beach:'Beach',sight:'Sightseeing',activity:'Activity',market:'Shopping'};
+function ensurePlace(name){ const g=guideFind(name); if(!S.places.some(p=>p.name.toLowerCase()===name.toLowerCase())) S.places.push({name,type:g?PTYPE[g.t]||'Other':'Food',note:g?g.best:'',visited:false}); return g; }
+function spanStart(d,c){ let s=0; const N=S.cols.length; while(s<N){ const n=Math.max(1,+((d.span||{})[s])||1); if(c<s+n) return s; s+=n; } return c; }
+$('#pm-list').onclick=()=>{ ensurePlace(planName); save(); closeModal(); toast('📍 Added to your places list'); renderDays(); };
+function addToPlan(name,r,c0,replace,link){
+  if(!S||!S.days||!name) return;
+  const d=S.days[r], c=spanStart(d,c0), g=ensurePlace(name);
+  d.place=d.place||{}; d.place[c]=name;
+  if(link){ d.plink=d.plink||{}; d.plink[c]=link; }
+  const cur=(d.cells[c]||'').trim();
+  if(!cur||cur==='—'||replace) d.cells[c]=(g?ICON[g.t]:'📍')+' '+name;
+  else if(!cur.toLowerCase().includes(name.toLowerCase())) d.cells[c]=cur+' · '+name;
+  save(); closeModal(); toast('✅ '+name+' → '+dayLbl(d)+' · '+S.cols[c]); renderDays(); if($('#cmpSlot')) showSlotNow();
+}
+$('#pm-save').onclick=()=>addToPlan(planName,+$('#pm-day').value,+$('#pm-slot').value,$('#pm-replace').checked);
+
+/* ---------- day-by-day suggestions ---------- */
+function renderDays(){
+  if(!S||!S.days){ $('#days').innerHTML='<p class="empty">Open the trip planner once to load your plan.</p>'; return; }
+  const planned=new Set(); S.days.forEach(d=>Object.values(d.place||{}).forEach(p=>planned.add(String(p).toLowerCase())));
+  $('#days').innerHTML=S.days.map((d,r)=>{
+    const texts=[...Object.values(d.place||{}),...d.cells, (S.stays[d.stay]||{}).location||''];
+    const count={}; texts.forEach(t=>{ const a=areaOf(t); if(a) count[a]=(count[a]||0)+1; });
+    const areas=Object.keys(count).sort((a,b)=>count[b]-count[a]).filter(a=>a!=='highway'||Object.keys(count).length===1).slice(0,2);
+    if(!areas.length) return '';
+    const pool=G.filter(g=>areas.includes(g.a)&&!planned.has(g.n.toLowerCase()));
+    const pick=(fn,n)=>pool.filter(fn).sort((a,b)=>b.score-a.score).slice(0,n);
+    const lunch=pick(g=>g.t==='restaurant'&&!/₹₹₹₹/.test(g.price),1), dinner=pick(g=>g.t==='restaurant'&&!lunch.includes(g),1),
+          cafe=pick(g=>g.t==='cafe',1), see=pick(g=>['sight','beach','activity'].includes(g.t),1);
+    const line=(lbl,g,slot)=>g?`<div class="sg"><span>${lbl} <b>${esc(g.n)}</b> <span class="meta">${g.score.toFixed(1)}</span></span><button class="btn sm" data-plan="${esc(g.n)}" data-day="${r}" data-slot="${slot}">＋</button></div>`:'';
+    return `<div class="day"><h4>${dayLbl(d)} <span class="meta">· ${areas.map(a=>esc(areaLabel(a).split('·')[0])).join(' + ')}</span></h4>
+      ${line('☕',cafe[0],0)}${line('🍽️ Lunch',lunch[0],3)}${line('🌙 Dinner',dinner[0],7)}${line('📸',see[0],4)}</div>`;
+  }).join('')||'<p class="empty">No suggestions — add places to your plan first.</p>';
+}
+
+/* ---------- boot ---------- */
+$('#advisory').textContent='🌧️ '+(window.GOA_ADVISORY||'');
+function hint(){ $('#liveHint').textContent = liveReady() ? '⚡ Live reviews come from Google via your trip backend.' : 'Tip: connect the shared backend (sync pill) to get live Google ratings & newest reviews. Our curated guide still works offline.'; }
+(async()=>{
+  await loadState(); renderChips(); renderGrid(); renderDays(); hint();
+  const qs=new URLSearchParams(location.search).get('q'); if(qs){ $('#q').value=qs; const f=$('#qForm'); if(f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit',{cancelable:true})); }
+  if(window.TripSync) TripSync.start({ get:()=>S, set:(ns)=>{ S=ns; S.places=S.places||[]; lsSet(KEY,S); renderDays(); hint(); }, people:()=>(S&&S.people)||[], toast });
+})();
+})();
+</script>
+</body>
+</html>

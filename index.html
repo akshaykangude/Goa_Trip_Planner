@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goa Trip Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf6ee; --surface:#ffffff; --surface-2:#f4ece0; --ink:#1f2a2e; --muted:#6b767a; --line:#e6dccd;
+  --sun:#f2703a; --sun-2:#ffb347; --sea:#0f8b8d; --sea-2:#d8f0ee; --plum:#7b4bb7;
+  --t-drive:#e3eefc; --t-food:#fff0dc; --t-beach:#dff4f1; --t-night:#efe5fb; --t-rest:#eef0f1; --t-sight:#fbe9e3;
+  --hl:#fff3a8; --shadow:0 6px 24px rgba(60,40,10,.08);
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1719; --surface:#162124; --surface-2:#1d2b2f; --ink:#e8efee; --muted:#93a3a6; --line:#2a3a3e;
+    --sea-2:#123436; --t-drive:#1a2a40; --t-food:#3a2a15; --t-beach:#123633; --t-night:#2b2140; --t-rest:#222c2f; --t-sight:#3a2019;
+    --hl:#5b4d10; --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162124; --surface-2:#1d2b2f; --ink:#e8efee; --muted:#93a3a6; --line:#2a3a3e;
+  --sea-2:#123436; --t-drive:#1a2a40; --t-food:#3a2a15; --t-beach:#123633; --t-night:#2b2140; --t-rest:#222c2f; --t-sight:#3a2019;
+  --hl:#5b4d10; --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px}
+body{overflow-x:hidden}
+a{color:var(--sea)}
+.wrap{max-width:1400px;margin:0 auto;padding:0 16px 60px}
+
+/* Hero */
+.hero{background:linear-gradient(120deg,#f2703a 0%,#ffb347 45%,#0f8b8d 100%);color:#fff;padding:28px 16px 70px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:-5%;right:-5%;bottom:-40px;height:90px;background:var(--bg);border-radius:50% 50% 0 0/100% 100% 0 0}
+.hero-in{max-width:1400px;margin:0 auto;position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.hero h1{font-family:Fraunces,serif;font-weight:800;font-size:clamp(28px,5vw,48px);margin:0;line-height:1.05;outline:none}
+.hero p{margin:6px 0 0;opacity:.95}
+.count{background:rgba(255,255,255,.18);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:12px 18px;text-align:center;min-width:150px}
+.count b{display:block;font-family:Fraunces,serif;font-size:34px;line-height:1}
+.count span{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+
+/* Nav + toolbar */
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;font:600 14px Inter,system-ui,sans-serif}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:10px;cursor:pointer;font:500 13px Inter,system-ui,sans-serif;white-space:nowrap}
+.btn:hover{border-color:var(--sea)}
+.btn.primary{background:var(--sea);color:#fff;border-color:var(--sea)}
+.btn.sun{background:var(--sun);color:#fff;border-color:var(--sun)}
+.btn.sm{padding:4px 8px;font-size:12px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:#d33}
+section.view{display:none}
+section.view.on{display:block}
+h2{font-family:Fraunces,serif;font-size:24px;margin:6px 0 4px}
+.sub{color:var(--muted);margin:0 0 14px;font-size:14px}
+
+/* Schedule table */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-2px;margin-right:4px;border:1px solid var(--line)}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+table.plan{border-collapse:separate;border-spacing:0;min-width:1250px;width:100%}
+table.plan th,table.plan td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;vertical-align:top}
+table.plan thead th{background:var(--surface-2);font-size:12px;font-weight:700;padding:10px 6px;text-align:center;position:sticky;top:0;white-space:nowrap}
+table.plan thead th.now{background:var(--sun);color:#fff}
+table.plan th.date,table.plan td.date{position:sticky;left:0;z-index:2;background:var(--surface);min-width:138px;width:138px}
+table.plan thead th.date{z-index:3;background:var(--surface-2)}
+td.date .d{padding:8px 10px}
+td.date .dn{font-weight:700;font-size:14px}
+td.date .dw{font-size:12px;color:var(--muted)}
+.stay-badge{display:inline-block;margin-top:4px;font-size:11px;padding:2px 7px;border-radius:999px;background:var(--sea-2);color:var(--sea);font-weight:600;cursor:pointer;border:none}
+.row-tools{display:flex;gap:2px;padding:0 6px 6px}
+tr.today td.date{box-shadow:inset 4px 0 0 var(--sun)}
+tr.today td.date .dn::after{content:" · TODAY";color:var(--sun);font-size:11px}
+td.cell{min-width:112px;height:64px;position:relative}
+td.cell .c{padding:8px;min-height:64px;outline:none;font-size:13px;line-height:1.35;word-break:break-word;cursor:text}
+td.cell .c:focus{box-shadow:inset 0 0 0 2px var(--sea);background:var(--surface)}
+td.cell.hl .c{background:var(--hl)}
+td.cell.hl .c strong{font-weight:800}
+td.cell.nowcell{box-shadow:inset 0 0 0 3px var(--sun)}
+td.cell.k-drive{background:var(--t-drive)} td.cell.k-food{background:var(--t-food)}
+td.cell.k-beach{background:var(--t-beach)} td.cell.k-night{background:var(--t-night)}
+td.cell.k-rest{background:var(--t-rest)} td.cell.k-sight{background:var(--t-sight)}
+td.cell .star{position:absolute;right:3px;top:3px;border:none;background:transparent;cursor:pointer;opacity:0;font-size:13px;padding:2px}
+td.cell:hover .star,td.cell.hl .star{opacity:1}
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+
+/* Cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.card h3{margin:0;font-size:16px}
+.card .meta{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink);margin-right:4px}
+.pill.rate{background:#fff0c9;color:#8a5a00}
+:root[data-theme="dark"] .pill.rate{background:#4a3a10;color:#ffd77a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill.rate{background:#4a3a10;color:#ffd77a}}
+.pill.done{background:var(--sea);color:#fff}
+.card .note{font-size:13px}
+.card .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);padding:6px 11px;border-radius:999px;font:600 12px Inter,system-ui,sans-serif;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--sun);color:#fff;border-color:var(--sun)}
+input.search{flex:1;min-width:180px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:14px Inter,system-ui,sans-serif}
+
+/* stays */
+.stay-card{border-left:5px solid var(--sea)}
+.stay-card[data-i="1"]{border-left-color:var(--sun)} .stay-card[data-i="2"]{border-left-color:var(--plum)}
+.stay-card input{width:100%;border:none;border-bottom:1px dashed var(--line);background:transparent;color:var(--ink);font:14px Inter,system-ui,sans-serif;padding:4px 0}
+.stay-card input.big{font:700 17px Inter,system-ui,sans-serif}
+.stay-card label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+
+/* notes */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:800px){.two{grid-template-columns:1fr}}
+@media (max-width:700px){
+  .hero{padding:16px 16px 48px}
+  .hero-in{flex-wrap:nowrap;align-items:center}
+  .count{min-width:0;padding:8px 12px}.count b{font-size:24px}.count span{font-size:10px}
+  .bar{position:static}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;width:100%;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab,a.tab-link{flex:0 0 auto}
+  .tools{width:100%}
+  .legend{display:none}
+  table.plan th.date,table.plan td.date{min-width:92px;width:92px}
+  td.date .row-tools{flex-wrap:wrap}
+}
+textarea{width:100%;min-height:260px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;font:14px/1.5 Inter,system-ui,sans-serif;resize:vertical}
+.check{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.check input[type=text]{flex:1;border:none;background:transparent;color:var(--ink);font:14px Inter,system-ui,sans-serif}
+.check.done input[type=text]{text-decoration:line-through;color:var(--muted)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}
+.dlg{background:var(--surface);border-radius:18px;padding:20px;width:100%;max-width:460px;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.dlg h3{margin:0 0 10px;font-family:Fraunces,serif}
+.dlg label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.dlg input,.dlg select,.dlg textarea{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:14px Inter,system-ui,sans-serif;min-height:auto}
+.dlg .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+.toast.on{opacity:1}
+/* money & car */
+.muted{color:var(--muted);font-weight:500;font-size:13px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.panel h3{margin:0 0 10px;font-size:16px}
+.panel label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+.panel input,.panel select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:14px Inter,system-ui,sans-serif}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px 12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stat b{display:block;font-family:Fraunces,serif;font-size:26px;margin-top:4px}
+.stat small{color:var(--muted);font-size:12px}
+.stat.good b{color:var(--sea)} .stat.bad b{color:#d64545}
+.meter{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;background:var(--sea);border-radius:99px}
+.meter i.over{background:#d64545}
+.bar-row{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;font-size:13px;margin:7px 0}
+.bar-row .track{height:12px;background:var(--surface-2);border-radius:99px;position:relative;overflow:hidden}
+.bar-row .track i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--sun-2),var(--sun));border-radius:99px}
+.bar-row .track i.over{background:#d64545}
+.bar-row .v{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.split{display:flex;flex-wrap:wrap;gap:6px}
+.split label{display:inline-flex;align-items:center;gap:6px;margin:0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--ink);cursor:pointer}
+.split input{width:auto}
+.split .quick{border-style:dashed;background:transparent;color:var(--muted);font:500 12px Inter,system-ui,sans-serif;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);cursor:pointer}
+table.log{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
+table.log th,table.log td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+table.log th{font-size:12px;color:var(--muted);font-weight:600}
+table.log td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+table.log input{width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif}
+.settle-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.person{display:flex;gap:6px;margin-bottom:6px}
+.tips{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+.bud-row{display:grid;grid-template-columns:1fr 130px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+
+/* plan extras: places, merge, money */
+table.plan{min-width:1380px}
+td.cell{padding-bottom:4px}
+td.cell .ctools{position:absolute;right:3px;bottom:3px;display:flex;gap:2px;opacity:0;transition:opacity .15s;z-index:1}
+td.cell:hover .ctools,td.cell:focus-within .ctools{opacity:1}
+td.cell .ctools button{position:static;opacity:1;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;font-size:11px;line-height:1;padding:3px 5px;cursor:pointer}
+td.cell .ctools button:hover{border-color:var(--sea)}
+td.cell .plc{display:block;margin:-4px 8px 4px;font-size:11px;color:var(--sea);text-decoration:none;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+td.cell .plc:hover{text-decoration:underline}
+td.cell .nt{margin:-2px 8px 4px;font-size:11px;color:var(--muted);font-style:italic;line-height:1.3}
+td.cell .cost{display:inline-block;margin:0 0 2px 8px;font-size:11px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 7px;color:var(--sun)}
+td.cell .mtag{display:inline-block;margin:0 0 2px 8px;font-size:10px;font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:999px;padding:1px 6px}
+td.cell.merged{background-image:linear-gradient(90deg,transparent calc(100% - 1px),rgba(0,0,0,.07) 0);background-size:calc(100% / var(--n)) 100%}
+table.plan.selmode td.cell{cursor:pointer}
+table.plan.selmode td.cell .ctools{display:none}
+table.plan.selmode td.cell .c{cursor:pointer}
+td.cell.sel{outline:3px solid var(--plum);outline-offset:-3px}
+td.spent{min-width:120px;padding:8px;font-size:12px;background:var(--surface-2)}
+td.spent b{display:block;font-size:15px;color:var(--sun)}
+td.spent .mini{display:block;color:var(--muted);font-size:11px;line-height:1.4}
+td.spent .btn{margin-top:4px}
+table.plan tfoot td{background:var(--surface-2);font-weight:700;font-size:12px;padding:8px;text-align:center;position:static}
+table.plan tfoot td.date{position:sticky;left:0;text-align:left}
+table.plan.compact td.cell{height:auto;min-width:92px}
+table.plan.compact td.cell .c{min-height:38px;padding:5px 6px;font-size:12px}
+table.plan.compact td.date .d{padding:5px 8px}
+table.plan.compact .row-tools{display:none}
+.ptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.selbar{display:none;gap:6px;align-items:center;flex-wrap:wrap}
+.selbar.on{display:inline-flex}
+#planStats .stat b{font-size:22px}
+.dlg.wide{max-width:640px}
+.dlg .form-grid label{margin:8px 0 4px}
+.xrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.xrow .n{font-weight:700;font-variant-numeric:tabular-nums}
+.pchip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--sea-2);color:var(--sea);font-weight:600;margin:1px 3px 1px 0;cursor:pointer;border:none}
+table.mtx td,table.mtx th{text-align:right;white-space:nowrap}
+table.mtx td:first-child,table.mtx th:first-child{text-align:left}
+table.mtx td.z{color:var(--muted);opacity:.5}
+table.mtx tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+table.mtx tr.bud td{color:var(--muted);font-size:12px}
+table.mtx td.hot{background:var(--t-food);font-weight:700}
+details.pd{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px;background:var(--bg)}
+details.pd summary{cursor:pointer;font-weight:600;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+details.pd summary::-webkit-details-marker{display:none}
+.over-t{color:#d64545!important}
+a.tab-link{border:1px solid var(--sea);background:var(--sea);color:#fff;padding:8px 14px;border-radius:999px;font:600 14px Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap}
+td.cell:has(.billform) .ctools{display:none}
+.billform{display:grid!important;grid-template-columns:1fr;gap:3px;width:100%}
+.billform input,.billform select{width:100%!important;box-sizing:border-box;padding:4px 6px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:12px Inter,system-ui,sans-serif}
+.billform .billin{border-color:var(--sun)}
+.hx-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.hx-row small{display:block;color:var(--muted);font-size:12px}
+td.cell .c{min-height:40px}
+td.cell .billrow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:2px 6px 4px}
+td.cell .billrow .cost{margin:0;cursor:pointer;font-family:inherit}
+td.cell .addbill{border:1px dashed var(--line);background:transparent;color:var(--muted);font:600 10px Inter,system-ui,sans-serif;border-radius:999px;padding:2px 7px;cursor:pointer;opacity:.55}
+td.cell:hover .addbill,td.cell .addbill:focus{opacity:1;border-color:var(--sun);color:var(--sun)}
+@media (hover:none){td.cell .addbill{opacity:1}}
+.billform{display:flex;gap:3px;flex-wrap:wrap;width:100%}
+.billform input{width:72px;padding:3px 6px;border-radius:7px;border:1px solid var(--sun);background:var(--surface);color:var(--ink);font:12px Inter,system-ui,sans-serif}
+.billform .billdesc{flex:1;min-width:60px;border-color:var(--line)}
+.billform button{border:none;background:var(--sun);color:#fff;border-radius:7px;padding:3px 8px;cursor:pointer;font-weight:700}
+.sugg{position:fixed;z-index:40;display:none;width:290px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);overflow:hidden;font-size:13px}
+.sugg .sh{padding:8px 10px;background:var(--sea-2);color:var(--sea);font-size:12px}
+.sugg .si{display:block;padding:8px 10px;cursor:pointer;border-top:1px solid var(--line);color:var(--ink);text-decoration:none}
+.sugg .si:hover{background:var(--surface-2)}
+.sugg .si small{display:block;color:var(--muted);font-size:11px}
+.sugg .go{color:var(--sea);font-weight:600}
+.mapwrap{margin-top:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2)}
+.mapwrap iframe{display:block;width:100%;height:220px;border:0}
+.mapwrap a{display:block;padding:7px 10px;font-size:13px;font-weight:600;text-decoration:none}
+table.plan td.cell.hl{background-color:var(--hl);box-shadow:inset 0 0 0 2px #e8c547}
+table.plan td.cell.hl .c{background:transparent}
+@media print{
+  .ctools,.ptools,#pm-add{display:none!important}
+  .bar,.row-tools,.star,.hint,.acts,.filters{display:none!important}
+  section.view{display:block!important;page-break-after:always}
+  .hero{padding:10px;color:#000;background:none}.hero::after{display:none}
+  @page{size:landscape}
+}
+</style>
+<meta name="theme-color" content="#f2703a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Goa Trip">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E">
+<script src="assets/config.js"></script>
+<script src="assets/tripdata.js"></script>
+<script src="assets/sync.js"></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-in">
+    <div>
+      <h1 id="title" contenteditable="true" spellcheck="false"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="count"><b id="countNum">–</b><span id="countLbl">days to go</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="bar">
+    <div class="tabs">
+      <button class="tab on" data-v="plan">🗓️ Plan</button>
+      <button class="tab" data-v="stays">🏡 Stays</button>
+      <button class="tab" data-v="food">🍽️ Restaurants</button>
+      <button class="tab" data-v="money">💰 Budget &amp; Expenses</button>
+      <button class="tab" data-v="car">🚗 Car &amp; Route</button>
+      <button class="tab" data-v="notes">📝 Notes &amp; Packing</button>
+      <button class="tab" data-v="history">🕘 History</button>
+      <a class="tab-link" href="explore.html">🔎 Explore &amp; Reviews</a>
+    </div>
+    <div class="tools">
+      <span id="syncSlot"></span>
+      <button class="btn" id="undoBtn" title="Undo last change">↶ Undo</button>
+      <button class="btn" id="themeBtn">🌓</button>
+      <button class="btn" id="exportBtn">⬇ Export JSON</button>
+      <button class="btn" id="importBtn">⬆ Import</button>
+      <button class="btn sun" id="saveHtmlBtn" title="Download a single index.html with the current plan baked in (works without internet)">💾 Offline copy</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </div>
+
+  <!-- PLAN -->
+  <section class="view on" id="v-plan">
+    <h2>Master schedule</h2>
+    <p class="sub">Dates are rows, 2-hour slots are columns. Click any cell to type. ⭐ marks a highlight (or wrap text in **stars**).</p>
+    <div class="legend">
+      <span><i style="background:var(--t-drive)"></i>Drive</span>
+      <span><i style="background:var(--t-food)"></i>Food</span>
+      <span><i style="background:var(--t-beach)"></i>Beach / Sunset</span>
+      <span><i style="background:var(--t-sight)"></i>Sightseeing / Adventure</span>
+      <span><i style="background:var(--t-night)"></i>Nightlife</span>
+      <span><i style="background:var(--t-rest)"></i>Rest / Hotel</span>
+    </div>
+    <div class="ptools">
+      <button class="btn" id="selModeBtn">🔗 Merge / Split slots</button>
+      <span class="selbar" id="selBar">
+        <span class="muted" id="selCount">Tap slots to select</span>
+        <button class="btn sm primary" id="mergeSel">Merge selected</button>
+        <button class="btn sm" id="splitSel">Split selected</button>
+        <button class="btn sm ghost" id="selDone">Done</button>
+      </span>
+      <label class="muted" style="display:inline-flex;align-items:center;gap:6px;margin-left:auto"><input type="checkbox" id="compactChk"> Compact view</label>
+    </div>
+    <div class="tbl-wrap"><table class="plan" id="planTbl"></table></div>
+    <div class="stats" id="planStats" style="margin-top:14px"></div>
+    <p class="hint">Type a place name in any slot (e.g. “🍽️ Lunch at Como Agua”) and its 📍 Google location appears under it. <b>＋ bill</b> under each slot logs what you spent there. Hover: ⭐ highlight · ⋯ details &amp; map · ⇥ merge · ⇹ split.</p>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn primary" id="addDayBtn">＋ Add day</button>
+      <button class="btn" id="printBtn">🖨 Print</button>
+      <button class="btn ghost" id="resetBtn">Reset to original plan</button>
+    </div>
+    <p class="hint">Edits save automatically in this browser. To keep them on GitHub, press <b>💾 Save for GitHub</b> and commit the downloaded <code>index.html</code>.</p>
+
+    <!-- Places -->
+    <div class="panel" id="placesPanel" style="margin-top:22px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+        <h3 style="margin:0">📍 Places I'm going</h3><span class="muted" id="plCount"></span>
+      </div>
+      <div class="form-grid pl-form">
+        <div><label>Place</label><input id="pl-name" list="placeList" placeholder="e.g. Chapora Fort"></div>
+        <div><label>Type</label><select id="pl-type"></select></div>
+        <div><label>Day</label><select id="pl-day"></select></div>
+        <div><label>Time slot</label><select id="pl-slot"></select></div>
+        <div><label>Note</label><input id="pl-note" placeholder="Entry fee, timing, tip…"></div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px">
+          <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="pl-replace" style="width:auto"> Replace slot text</label>
+          <button class="btn primary" id="pl-add">＋ Add place</button>
+        </div>
+      </div>
+      <div class="tbl-wrap" style="box-shadow:none;margin-top:12px"><table class="log" id="plTbl"></table></div>
+      <datalist id="placeList"></datalist>
+    </div>
+
+    <!-- Money in plan -->
+    <div class="panel" id="pmPanel">
+      <h3>💰 Where the money went</h3>
+      <div class="form-grid">
+        <div><label>Amount (₹)</label><input type="number" id="pm-amt" inputmode="decimal" placeholder="0"></div>
+        <div><label>Category</label><select id="pm-cat"></select></div>
+        <div><label>What for</label><input id="pm-desc" list="placeList" placeholder="Dinner, entry, fuel…"></div>
+        <div><label>Day</label><select id="pm-day"></select></div>
+        <div><label>Time slot</label><select id="pm-slot"></select></div>
+        <div><label>Paid by</label><select id="pm-by"></select></div>
+        <div><label>Split</label><select id="pm-split"><option value="auto">Auto (us two / all 5 by stay)</option><option value="all">Everyone</option><option value="couple">Just us two</option><option value="payer">Only payer</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn sun" id="pm-add" style="width:100%">＋ Add spend</button></div>
+      </div>
+      <div class="tbl-wrap" style="box-shadow:none;margin-top:14px"><table class="log mtx" id="pmTbl"></table></div>
+      <div id="pmDays" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- STAYS -->
+  <section class="view" id="v-stays">
+    <h2>Stays</h2>
+    <p class="sub">Edit any field directly. The badge on each day in the plan follows these.</p>
+    <div class="grid" id="staysGrid"></div>
+    <div style="margin-top:12px"><button class="btn primary" id="addStayBtn">＋ Add stay</button></div>
+  </section>
+
+  <!-- FOOD -->
+  <section class="view" id="v-food">
+    <h2>Where to eat</h2>
+    <p class="sub">Top-rated picks grouped by area, matched to your stays. Ratings shift — tap <b>Maps ↗</b> for the live Google rating. Use <b>Add to plan</b> to drop a place into any slot.</p>
+    <div class="filters" id="areaChips"></div>
+    <div class="filters">
+      <input class="search" id="foodSearch" placeholder="Search name, cuisine, dish…">
+      <button class="btn primary" id="addFoodBtn">＋ Add place</button>
+    </div>
+    <div class="grid" id="foodGrid"></div>
+  </section>
+
+  <!-- MONEY -->
+  <section class="view" id="v-money">
+    <h2>Budget &amp; expenses</h2>
+    <p class="sub">Log every spend in a few taps. Budgets are starter estimates — tap any number to change it.</p>
+    <div class="stats" id="moneyStats"></div>
+
+    <div class="panel">
+      <h3>＋ Add expense</h3>
+      <div class="form-grid">
+        <div><label>Amount (₹)</label><input type="number" id="e-amt" inputmode="decimal" placeholder="0"></div>
+        <div><label>Category</label><select id="e-cat"></select></div>
+        <div><label>What for</label><input id="e-desc" placeholder="Lunch at Britto's"></div>
+        <div><label>Date</label><input type="date" id="e-date"></div>
+        <div><label>Paid by</label><select id="e-by"></select></div>
+        <div><label>Mode</label><select id="e-mode"><option>UPI</option><option>Cash</option><option>Card</option></select></div>
+      </div>
+      <label>Split between</label>
+      <div class="split" id="e-split"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn primary" id="e-add">Add expense</button>
+        <button class="btn" id="e-cancel" hidden>Cancel edit</button>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>By category <span class="muted">· spent vs budget</span></h3>
+        <div id="catBars"></div>
+      </div>
+      <div class="panel">
+        <h3>By day</h3>
+        <div id="dayBars"></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel">
+        <h3>👥 Who owes whom</h3>
+        <p class="sub" style="margin:0 0 8px">Based on who paid and how each spend was split.</p>
+        <div id="settle"></div>
+        <label style="margin-top:12px">People (edit names)</label>
+        <div id="people"></div>
+        <button class="btn sm" id="addPerson" style="margin-top:6px">＋ Person</button>
+      </div>
+      <div class="panel">
+        <h3>Budget settings</h3>
+        <div id="budgetEdit"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">Expense log</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><select id="e-filter" class="btn"></select><button class="btn sm" id="csvBtn">⬇ CSV</button></div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:10px;box-shadow:none"><table class="log" id="expTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- CAR -->
+  <section class="view" id="v-car">
+    <h2>Car &amp; route</h2>
+    <p class="sub">Fuel cost updates from mileage × distance. Distances are approximate — fill “Actual km” from your odometer.</p>
+    <div class="stats" id="carStats"></div>
+    <div class="two">
+      <div class="panel">
+        <h3>🚘 Vehicle</h3>
+        <div class="form-grid" id="carForm"></div>
+      </div>
+      <div class="panel">
+        <h3>🛣️ Drive tips</h3>
+        <ul class="tips">
+          <li>Leave Pune by 6 AM to clear the ghats in daylight; aim to reach Goa before dark.</li>
+          <li>Pune → Satara → Kolhapur on NH48 is the easy stretch; ghat section after that — go slow in rain.</li>
+          <li>Refuel in Kolhapur/Belagavi side before the ghats; Goa pumps get crowded in the evening.</li>
+          <li>Keep FASTag topped up; tolls are auto-added to the estimate below.</li>
+          <li>Goa: don't drink &amp; drive — cab or designated driver on BAAREE / UNVRS / LPK nights.</li>
+          <li>Parking at Baga/Calangute and Vagator fills up after 5 PM — go early for sunsets.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Legs</h3>
+      <div class="tbl-wrap" style="box-shadow:none"><table class="log" id="legTbl"></table></div>
+      <button class="btn primary sm" id="addLeg" style="margin-top:10px">＋ Add leg</button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="view" id="v-history">
+    <h2>History &amp; backups</h2>
+    <p class="sub">Nothing is ever lost. Cloud snapshots are saved automatically every 2 hours (CSV + Excel in Google Drive, plus the <code>backups/</code> folder on GitHub). This phone also keeps its own restore points. Restoring never deletes anything — the old version is simply saved as the newest one, so you can switch back again.</p>
+    <div class="panel"><h3>⬇ Download the current data</h3><div id="hxExport" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h3 style="margin:0">☁️ Cloud snapshots <span class="muted">(every 2 hours)</span></h3>
+        <div style="display:flex;gap:6px"><button class="btn sm" id="hxRefresh">↻ Refresh</button><button class="btn sm primary" id="hxSnapNow">📸 Snapshot now</button></div>
+      </div>
+      <div id="hxCloud" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h3 style="margin:0">📱 Restore points on this phone</h3>
+        <button class="btn sm" id="hxLocalNow">＋ Save a restore point now</button>
+      </div>
+      <div id="hxLocal" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- NOTES -->
+  <section class="view" id="v-notes">
+    <div class="two">
+      <div>
+        <h2>Notes &amp; ideas</h2>
+        <p class="sub">Bookings, phone numbers, places to add later…</p>
+        <textarea id="notes"></textarea>
+      </div>
+      <div>
+        <h2>Packing &amp; to-do</h2>
+        <p class="sub">Tick things off as you go.</p>
+        <div id="checks"></div>
+        <button class="btn primary" id="addCheckBtn" style="margin-top:10px">＋ Add item</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modals -->
+<div class="modal" id="foodModal"><div class="dlg">
+  <h3 id="foodModalTitle">Place</h3>
+  <label>Name</label><input id="f-name">
+  <label>Area</label><select id="f-area"></select>
+  <label>Cuisine</label><input id="f-cuisine">
+  <label>Best for</label><input id="f-best" placeholder="Sunset dinner, breakfast…">
+  <label>Price (₹ – ₹₹₹₹)</label><input id="f-price">
+  <label>Rating (your note or live rating)</label><input id="f-rating" placeholder="e.g. 4.6 Google">
+  <label>Note</label><textarea id="f-note" style="min-height:70px"></textarea>
+  <div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" id="f-save">Save</button></div>
+</div></div>
+
+<div class="modal" id="slotModal"><div class="dlg">
+  <h3>Add to plan</h3>
+  <p class="sub" id="slotWhat"></p>
+  <label>Day</label><select id="s-day"></select>
+  <label>Time slot</label><select id="s-col"></select>
+  <label>Mode</label>
+  <select id="s-mode"><option value="replace">Replace slot text</option><option value="append">Append to slot</option></select>
+  <div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" id="s-save">Add</button></div>
+</div></div>
+
+<div class="modal" id="cellModal"><div class="dlg wide">
+  <h3 id="cm-title">Slot</h3>
+  <div class="form-grid">
+    <div style="grid-column:1/-1"><label>Activity</label><input id="cm-text"></div>
+    <div><label>📍 Place</label><input id="cm-place" list="placeList" placeholder="Where are you going?"></div>
+    <div style="grid-column:span 2"><label>Covers (merge / split)</label><select id="cm-span"></select></div>
+    <div style="grid-column:1/-1"><label>Note</label><input id="cm-note" placeholder="Booking ref, entry fee, who's driving…"></div>
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="cm-hl" style="width:auto"> ⭐ Highlight this slot</label>
+  <div style="margin-top:8px"><a class="btn sm" id="cm-review" href="explore.html" target="_self">🔎 Reviews &amp; better options nearby</a></div>
+  <div class="mapwrap" id="cm-mapwrap"><iframe id="cm-map" title="Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a id="cm-maplink" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>
+  <h4 style="margin:16px 0 6px">🧾 Bills in this slot <span class="muted" id="cm-total"></span></h4>
+  <div id="cm-exp"></div>
+  <div class="form-grid" style="margin-top:6px">
+    <div><label>Amount (₹)</label><input type="number" id="cm-amt" inputmode="decimal" placeholder="0"></div>
+    <div><label>Category</label><select id="cm-cat"></select></div>
+    <div><label>What</label><input id="cm-desc" placeholder="Where / what — e.g. Dinner at Thalassa"></div>
+    <div><label>Paid by</label><select id="cm-by"></select></div>
+    <div><label>Split</label><select id="cm-split"><option value="auto">Auto</option><option value="all">Everyone</option><option value="couple">Just us two</option><option value="payer">Only payer</option></select></div>
+    <div style="display:flex;align-items:flex-end"><button class="btn sun" id="cm-addexp" style="width:100%">＋ Add ₹</button></div>
+  </div>
+  <div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" id="cm-save">Save slot</button></div>
+</div></div>
+
+<div class="modal" id="hxModal"><div class="dlg wide">
+  <h3 id="hx-title">Version</h3>
+  <div class="stats" id="hx-stats" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))"></div>
+  <div id="hx-diff" class="sub"></div>
+  <div class="tbl-wrap" style="box-shadow:none;max-height:260px;overflow:auto"><table class="log" id="hx-bills" style="min-width:0"></table></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button class="btn" data-close>Close</button>
+    <button class="btn" id="hx-csv">📄 Bills CSV</button>
+    <button class="btn" id="hx-json">🗂 JSON</button>
+    <button class="btn sun" id="hx-restore">↺ Restore this version</button>
+  </div>
+</div></div>
+
+<div class="modal" id="dayModal"><div class="dlg">
+  <h3>Edit day</h3>
+  <label>Date</label><input type="date" id="d-date">
+  <label>Stay</label><select id="d-stay"></select>
+  <div class="row"><button class="btn" data-close>Cancel</button><button class="btn primary" id="d-save">Save</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Seed data: "Save for GitHub" rewrites this block with your latest plan -->
+<script type="application/json" id="seed">
+{
+ "savedAt": 0,
+ "title": "Goa 2026 🌴",
+ "subtitle": "Pune → North Goa → South Goa → Pune · 25 Sep – 3 Oct",
+ "cols": [
+  "6–8 AM",
+  "8–10 AM",
+  "10 AM–12 PM",
+  "12–2 PM",
+  "2–4 PM",
+  "4–6 PM",
+  "6–8 PM",
+  "8–10 PM",
+  "10 PM–12 AM",
+  "12–2 AM"
+ ],
+ "stays": [
+  {
+   "name": "🏨 Stay 1",
+   "dates": "25–29 Sep",
+   "location": "Arpora / Baga",
+   "people": "👩‍❤️‍👨 You + Wife",
+   "link": ""
+  },
+  {
+   "name": "🏡 Stay 2",
+   "dates": "29 Sep – 1 Oct",
+   "location": "Anjuna / Vagator / Siolim",
+   "people": "👨‍👩‍👧 5 People",
+   "link": ""
+  },
+  {
+   "name": "🏖️ Stay 3",
+   "dates": "1–3 Oct",
+   "location": "Agonda",
+   "people": "👨‍👩‍👧 5 People",
+   "link": ""
+  }
+ ],
+ "days": [
+  {
+   "date": "2026-09-25",
+   "stay": 0,
+   "cells": [
+    "🚗 Pune → Goa",
+    "🚗 Drive",
+    "🚗 Drive",
+    "🍽️ Lunch + Drive",
+    "🚗 Drive",
+    "🚗 Drive",
+    "📍 Reach Goa",
+    "🏨 Check-in",
+    "🍽️ Baga",
+    "🍹 Nightlife"
+   ],
+   "place": {
+    "8": "Tito's Lane, Baga"
+   }
+  },
+  {
+   "date": "2026-09-26",
+   "stay": 0,
+   "cells": [
+    "☕ Breakfast",
+    "🏖️ Baga/Anjuna",
+    "🏖️ Anjuna",
+    "🍽️ Lunch",
+    "🏨 Rest/Pool",
+    "🏰 Chapora",
+    "🌅 Vagator",
+    "🍽️ Dinner",
+    "❤️ **BAAREE**",
+    "🔥 Club"
+   ],
+   "place": {
+    "1": "Baga Beach",
+    "2": "Anjuna Beach",
+    "5": "Chapora Fort",
+    "6": "Vagator Beach",
+    "8": "BAAREE Goa"
+   }
+  },
+  {
+   "date": "2026-09-27",
+   "stay": 0,
+   "cells": [
+    "☕ Breakfast",
+    "🏖️ Candolim",
+    "🏖️ Candolim",
+    "🍽️ Lunch",
+    "🏰 Aguada",
+    "🌅 Sinquerim",
+    "🏨 Freshen up",
+    "🍽️ Dinner",
+    "🔥 **UNVRS**",
+    "🕺 Club"
+   ],
+   "place": {
+    "1": "Candolim Beach",
+    "4": "Fort Aguada",
+    "5": "Sinquerim Beach",
+    "8": "UNVRS Goa"
+   }
+  },
+  {
+   "date": "2026-09-28",
+   "stay": 0,
+   "cells": [
+    "😴 Sleep",
+    "🏨 Relax",
+    "🏊 Pool",
+    "🍽️ Lunch",
+    "🌴 Assagao",
+    "🌅 Vagator",
+    "🚗 Nerul",
+    "🍽️ Dinner",
+    "🌊 **LPK**",
+    "🕺 Music"
+   ],
+   "place": {
+    "4": "Assagao",
+    "5": "Vagator Beach",
+    "6": "Nerul",
+    "8": "LPK Waterfront, Nerul"
+   }
+  },
+  {
+   "date": "2026-09-29",
+   "stay": 1,
+   "cells": [
+    "☕ Breakfast",
+    "🧳 Check-out",
+    "🚗 Panjim",
+    "👨‍👩‍👧 Friends + Lunch",
+    "🚗 Villa",
+    "🏡 Check-in",
+    "🌅 Vagator",
+    "🍽️ Dinner",
+    "🌴 Beach Walk",
+    "😴 Sleep"
+   ],
+   "place": {
+    "2": "Fontainhas, Panjim",
+    "6": "Vagator Beach"
+   }
+  },
+  {
+   "date": "2026-09-30",
+   "stay": 1,
+   "cells": [
+    "☕ Breakfast",
+    "🏰 Aguada",
+    "🏖️ Sinquerim",
+    "🍽️ Lunch",
+    "🏖️ Candolim",
+    "🏖️ Calangute/Baga",
+    "🌅 Baga",
+    "🍽️ Dinner",
+    "🍨 Dessert",
+    "😴 Sleep"
+   ],
+   "place": {
+    "1": "Fort Aguada",
+    "2": "Sinquerim Beach",
+    "4": "Candolim Beach",
+    "5": "Calangute Beach",
+    "6": "Baga Beach"
+   }
+  },
+  {
+   "date": "2026-10-01",
+   "stay": 2,
+   "cells": [
+    "☕ Breakfast",
+    "🧳 Check-out + South",
+    "🚗 South Goa",
+    "🏞️ Cabo de Rama",
+    "🍽️ Lunch",
+    "🚗 Agonda",
+    "🏖️ Check-in",
+    "🍽️ Shack Dinner",
+    "🍹 Beach",
+    "😴 Sleep"
+   ],
+   "place": {
+    "3": "Cabo de Rama Fort",
+    "5": "Agonda Beach"
+   }
+  },
+  {
+   "date": "2026-10-02",
+   "stay": 2,
+   "cells": [
+    "☕ Breakfast",
+    "🚗 Cola",
+    "🛶 **Kayaking**",
+    "🛶 Adventure",
+    "🍽️ Lunch",
+    "🏖️ Cola Beach",
+    "🚗 Agonda",
+    "🌅 Sunset",
+    "🍽️ Dinner",
+    "🍹 Beach"
+   ],
+   "place": {
+    "1": "Cola Beach",
+    "2": "Cola Beach",
+    "5": "Cola Beach",
+    "7": "Agonda Beach"
+   }
+  },
+  {
+   "date": "2026-10-03",
+   "stay": 2,
+   "cells": [
+    "🧳 Check-out",
+    "🚗 Return Pune",
+    "🚗 Drive",
+    "🍽️ Lunch",
+    "🚗 Drive",
+    "🚗 Drive",
+    "🚗 Drive",
+    "🏠 Pune",
+    "—",
+    "—"
+   ]
+  }
+ ],
+ "areas": [
+  {
+   "id": "baga",
+   "label": "Baga · Arpora · Calangute",
+   "tag": "Near Stay 1"
+  },
+  {
+   "id": "north",
+   "label": "Anjuna · Vagator · Assagao · Siolim",
+   "tag": "Near Stay 2"
+  },
+  {
+   "id": "candolim",
+   "label": "Candolim · Sinquerim · Aguada · Nerul",
+   "tag": "27 & 30 Sep"
+  },
+  {
+   "id": "panjim",
+   "label": "Panjim",
+   "tag": "29 Sep lunch"
+  },
+  {
+   "id": "south",
+   "label": "Agonda · Palolem · Cola",
+   "tag": "Near Stay 3"
+  },
+  {
+   "id": "highway",
+   "label": "Pune ⇄ Goa highway",
+   "tag": "25 Sep & 3 Oct"
+  }
+ ],
+ "food": [
+  {
+   "area": "baga",
+   "name": "Britto's",
+   "cuisine": "Goan · Seafood",
+   "best": "Beach lunch, classic Goan",
+   "price": "₹₹",
+   "rating": "Local classic",
+   "note": "Right on Baga beach. Try prawn curry rice and bebinca."
+  },
+  {
+   "area": "baga",
+   "name": "Souza Lobo",
+   "cuisine": "Goan · Seafood",
+   "best": "Lunch / sunset by the sea",
+   "price": "₹₹",
+   "rating": "Heritage icon",
+   "note": "Historic Calangute beachfront seafood spot — go for the lobster or fish curry."
+  },
+  {
+   "area": "baga",
+   "name": "Go With The Flow",
+   "cuisine": "Global · Cocktails",
+   "best": "❤️ Romantic dinner",
+   "price": "₹₹₹",
+   "rating": "Top-rated",
+   "note": "Garden & terrace seating on Baga creek, calm away from the crowd. Profits support a social foundation."
+  },
+  {
+   "area": "baga",
+   "name": "Toro Toro",
+   "cuisine": "Pan-Asian",
+   "best": "Dinner with river view",
+   "price": "₹₹₹",
+   "rating": "Highly rated",
+   "note": "Arpora, multi-level seating with river view — lively vibe."
+  },
+  {
+   "area": "baga",
+   "name": "A Reverie",
+   "cuisine": "Modern European",
+   "best": "❤️ Date night",
+   "price": "₹₹₹₹",
+   "rating": "Fine dining",
+   "note": "Known for smoked duck breast and calamari tempura."
+  },
+  {
+   "area": "baga",
+   "name": "Pousada by the Beach",
+   "cuisine": "Goan · Portuguese · Seafood",
+   "best": "Beachfront lunch",
+   "price": "₹₹",
+   "rating": "Popular",
+   "note": "Prawns, Goan fish curry, surmai tava fry."
+  },
+  {
+   "area": "baga",
+   "name": "Infantaria",
+   "cuisine": "Bakery · Café",
+   "best": "☕ Breakfast",
+   "price": "₹₹",
+   "rating": "Since 1989",
+   "note": "Croissants, quiche, Death by Chocolate."
+  },
+  {
+   "area": "north",
+   "name": "Vinayak Family Restaurant",
+   "cuisine": "Goan · Seafood thali",
+   "best": "Authentic Goan lunch",
+   "price": "₹₹",
+   "rating": "4.9 (10k+ votes)",
+   "note": "Assagao. Very busy — go early. Closes in the afternoon and reopens ~7 PM."
+  },
+  {
+   "area": "north",
+   "name": "Antares",
+   "cuisine": "Modern Australian × Goan",
+   "best": "🌅 Sunset dinner on the cliff",
+   "price": "₹₹₹₹",
+   "rating": "Top-rated",
+   "note": "Vagator cliff-top. Pork belly and seafood platter are standouts. Book ahead."
+  },
+  {
+   "area": "north",
+   "name": "Thalassa",
+   "cuisine": "Greek",
+   "best": "🌅 Sunset + group dinner",
+   "price": "₹₹₹",
+   "rating": "Iconic",
+   "note": "Great for the 5-person group on 29 or 30 Sep. Reserve a sunset table."
+  },
+  {
+   "area": "north",
+   "name": "Artjuna",
+   "cuisine": "Café · Mediterranean",
+   "best": "☕ Breakfast / brunch",
+   "price": "₹₹",
+   "rating": "Much loved",
+   "note": "Anjuna garden café — smoothie bowls, shakshuka, art & yoga vibe."
+  },
+  {
+   "area": "north",
+   "name": "Goa's Ark",
+   "cuisine": "Mediterranean · Mezze",
+   "best": "Relaxed dinner",
+   "price": "₹₹₹",
+   "rating": "Highly rated",
+   "note": "Locally sourced, organic options."
+  },
+  {
+   "area": "north",
+   "name": "Mango Tree",
+   "cuisine": "Goan · Indian · Continental",
+   "best": "Budget-friendly anytime",
+   "price": "₹",
+   "rating": "Crowd favourite",
+   "note": "Main Vagator road — easy, affordable, everyone finds something."
+  },
+  {
+   "area": "north",
+   "name": "Baba Au Rhum",
+   "cuisine": "European café",
+   "best": "Lazy breakfast",
+   "price": "₹₹",
+   "rating": "Popular",
+   "note": "Anjuna. Great bakes and coffee."
+  },
+  {
+   "area": "north",
+   "name": "Hawratt Khanavaal",
+   "cuisine": "Local Goan",
+   "best": "Cheap fish thali by the river",
+   "price": "₹",
+   "rating": "Local gem",
+   "note": "Siolim riverside, no-frills — all about the food."
+  },
+  {
+   "area": "candolim",
+   "name": "Mikey's Place",
+   "cuisine": "Goan · Seafood · Multi",
+   "best": "Lunch after Aguada",
+   "price": "₹₹",
+   "rating": "4.7 (20k+ ratings)",
+   "note": "Fort Aguada Road, Sinquerim — perfect for 27 or 30 Sep."
+  },
+  {
+   "area": "candolim",
+   "name": "Fisherman's Wharf",
+   "cuisine": "Goan · Seafood",
+   "best": "Group dinner",
+   "price": "₹₹₹",
+   "rating": "Top-rated",
+   "note": "Fresh seafood, butter-garlic prawns, fish curry rice."
+  },
+  {
+   "area": "candolim",
+   "name": "Yazu – Pan Asian Beach Club",
+   "cuisine": "Pan-Asian · Sushi",
+   "best": "🌅 Sunset at Sinquerim/Candolim",
+   "price": "₹₹₹₹",
+   "rating": "Premium",
+   "note": "Beachfront at Marquis Beach Resort, Candolim. Pricey but stunning sunsets."
+  },
+  {
+   "area": "candolim",
+   "name": "Calamari Bathe & Binge",
+   "cuisine": "Seafood · Beach shack",
+   "best": "Beach lunch",
+   "price": "₹₹",
+   "rating": "4.4 (12k+ ratings)",
+   "note": "Candolim beach road."
+  },
+  {
+   "area": "candolim",
+   "name": "Seven Rivers",
+   "cuisine": "Brewpub · Snacks",
+   "best": "Craft beer before UNVRS",
+   "price": "₹₹",
+   "rating": "Great value",
+   "note": "Sinquerim — try a beer flight."
+  },
+  {
+   "area": "panjim",
+   "name": "Viva Panjim",
+   "cuisine": "Goan · Portuguese",
+   "best": "👨‍👩‍👧 Friends lunch 29 Sep",
+   "price": "₹₹",
+   "rating": "Must-visit",
+   "note": "Heritage home in Fontainhas Latin Quarter. Pork dishes, xacuti, prawn curry. Walk Fontainhas after."
+  },
+  {
+   "area": "panjim",
+   "name": "Kokni Kanteen",
+   "cuisine": "Goan · Konkani",
+   "best": "Fish thali",
+   "price": "₹₹",
+   "rating": "Highly rated",
+   "note": "Phenomenal fish thali."
+  },
+  {
+   "area": "panjim",
+   "name": "Ritz Classic",
+   "cuisine": "Goan seafood",
+   "best": "Fish thali",
+   "price": "₹₹",
+   "rating": "Local legend",
+   "note": "Expect a queue at lunch."
+  },
+  {
+   "area": "panjim",
+   "name": "The Black Sheep Bistro",
+   "cuisine": "Modern global",
+   "best": "Stylish lunch / dinner",
+   "price": "₹₹₹",
+   "rating": "Top-rated",
+   "note": "Villa Braganca, first floor."
+  },
+  {
+   "area": "panjim",
+   "name": "Cafe Bhonsle",
+   "cuisine": "Goan snacks",
+   "best": "Quick breakfast",
+   "price": "₹",
+   "rating": "Local institution",
+   "note": "Alsande, batata bhaji, mirchi bhaji."
+  },
+  {
+   "area": "south",
+   "name": "Zest",
+   "cuisine": "Healthy · Vegan · Global",
+   "best": "Lunch / dinner",
+   "price": "₹₹",
+   "rating": "#1 in Agonda",
+   "note": "Consistently the top pick in Agonda & Palolem."
+  },
+  {
+   "area": "south",
+   "name": "The Bay Agonda",
+   "cuisine": "Seafood · Multi",
+   "best": "🌅 Sunset dinner",
+   "price": "₹₹",
+   "rating": "Highly rated",
+   "note": "Last property on Agonda beach — great sunset spot."
+  },
+  {
+   "area": "south",
+   "name": "Simrose",
+   "cuisine": "Seafood · Continental",
+   "best": "Beachfront dinner",
+   "price": "₹₹₹",
+   "rating": "Popular",
+   "note": "South end of Agonda beach."
+  },
+  {
+   "area": "south",
+   "name": "Zac's",
+   "cuisine": "Café · Light meals",
+   "best": "Quick lunch after Cola",
+   "price": "₹",
+   "rating": "Loved by travellers",
+   "note": "Agonda."
+  },
+  {
+   "area": "south",
+   "name": "Baba's Little Italy",
+   "cuisine": "Italian · Pizza",
+   "best": "Pizza night",
+   "price": "₹₹",
+   "rating": "Highly rated",
+   "note": "Palolem (~10 km). Wood-fired pizza, sushi too."
+  },
+  {
+   "area": "highway",
+   "name": "Hotel Opal, Kolhapur",
+   "cuisine": "Kolhapuri",
+   "best": "🍽️ Lunch stop on the drive",
+   "price": "₹₹",
+   "rating": "Kolhapur favourite",
+   "note": "Tambda–pandhra rassa mutton thali. Confirm timing & route before leaving."
+  }
+ ],
+ "people": [
+  "Akshay",
+  "Wife",
+  "Friend 1",
+  "Friend 2",
+  "Friend 3"
+ ],
+ "couple": [
+  0,
+  1
+ ],
+ "budget": {
+  "total": 80000,
+  "cats": [
+   {
+    "id": "fuel",
+    "label": "⛽ Fuel",
+    "amt": 9000
+   },
+   {
+    "id": "toll",
+    "label": "🛣️ Tolls & parking",
+    "amt": 2500
+   },
+   {
+    "id": "stay",
+    "label": "🏨 Stays",
+    "amt": 0
+   },
+   {
+    "id": "food",
+    "label": "🍽️ Food & drinks",
+    "amt": 25000
+   },
+   {
+    "id": "night",
+    "label": "🔥 Clubs & nightlife",
+    "amt": 15000
+   },
+   {
+    "id": "act",
+    "label": "🛶 Activities",
+    "amt": 5000
+   },
+   {
+    "id": "shop",
+    "label": "🛍️ Shopping",
+    "amt": 5000
+   },
+   {
+    "id": "misc",
+    "label": "📦 Misc",
+    "amt": 3000
+   }
+  ]
+ },
+ "expenses": [],
+ "car": {
+  "name": "My car",
+  "fuel": "Petrol",
+  "mileage": 15,
+  "price": 105,
+  "tollEst": 1500,
+  "legs": [
+   {
+    "date": "2026-09-25",
+    "from": "Pune",
+    "to": "Arpora / Baga",
+    "km": 460,
+    "actual": ""
+   },
+   {
+    "date": "2026-09-26",
+    "from": "Baga",
+    "to": "Anjuna · Chapora · Vagator",
+    "km": 35,
+    "actual": ""
+   },
+   {
+    "date": "2026-09-27",
+    "from": "Baga",
+    "to": "Candolim · Aguada · Sinquerim",
+    "km": 35,
+    "actual": ""
+   },
+   {
+    "date": "2026-09-28",
+    "from": "Baga",
+    "to": "Assagao · Vagator · Nerul (LPK)",
+    "km": 45,
+    "actual": ""
+   },
+   {
+    "date": "2026-09-29",
+    "from": "Baga",
+    "to": "Panjim → Villa (Anjuna/Siolim)",
+    "km": 50,
+    "actual": ""
+   },
+   {
+    "date": "2026-09-30",
+    "from": "Villa",
+    "to": "Aguada · Candolim · Baga",
+    "km": 45,
+    "actual": ""
+   },
+   {
+    "date": "2026-10-01",
+    "from": "Villa",
+    "to": "Cabo de Rama → Agonda",
+    "km": 110,
+    "actual": ""
+   },
+   {
+    "date": "2026-10-02",
+    "from": "Agonda",
+    "to": "Cola Beach & back",
+    "km": 30,
+    "actual": ""
+   },
+   {
+    "date": "2026-10-03",
+    "from": "Agonda",
+    "to": "Pune",
+    "km": 520,
+    "actual": ""
+   }
+  ]
+ },
+ "notes": "✈️ / 🚗 Bookings\n- Stay 1 (Arpora/Baga): \n- Stay 2 villa: \n- Stay 3 (Agonda): \n\n🎟️ Reservations\n- BAAREE (26 Sep):\n- UNVRS (27 Sep):\n- LPK (28 Sep):\n- Kayaking at Cola (2 Oct):\n\n📍 Places to add later\n- \n",
+ "checks": [
+  {
+   "t": "Swimwear, sunscreen, sunglasses, hats",
+   "d": false
+  },
+  {
+   "t": "Party outfits for BAAREE / UNVRS / LPK",
+   "d": false
+  },
+  {
+   "t": "Car papers, FASTag recharge, spare tyre check",
+   "d": false
+  },
+  {
+   "t": "IDs for check-ins & club entry",
+   "d": false
+  },
+  {
+   "t": "Power bank, phone mount, aux / Bluetooth",
+   "d": false
+  },
+  {
+   "t": "Dry bag for kayaking at Cola",
+   "d": false
+  },
+  {
+   "t": "Book table: sunset dinner (Antares / Thalassa)",
+   "d": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Tito's Lane, Baga",
+   "type": "Nightlife",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Baga Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Anjuna Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Chapora Fort",
+   "type": "Sightseeing",
+   "note": "Go ~5 PM, then Vagator for sunset",
+   "visited": false
+  },
+  {
+   "name": "Vagator Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "BAAREE Goa",
+   "type": "Nightlife",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Candolim Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Fort Aguada",
+   "type": "Sightseeing",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Sinquerim Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "UNVRS Goa",
+   "type": "Nightlife",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Assagao",
+   "type": "Food",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Nerul",
+   "type": "Other",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "LPK Waterfront, Nerul",
+   "type": "Nightlife",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Fontainhas, Panjim",
+   "type": "Sightseeing",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Calangute Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Cabo de Rama Fort",
+   "type": "Sightseeing",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Agonda Beach",
+   "type": "Beach",
+   "note": "",
+   "visited": false
+  },
+  {
+   "name": "Cola Beach",
+   "type": "Beach",
+   "note": "Kayaking in the lagoon — carry a dry bag",
+   "visited": false
+  }
+ ]
+}
+</script>
+
+<script>
+(function(){
+const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const KEY = 'goaTripPlanner.v1';
+const $ = s => document.querySelector(s);
+const seed = JSON.parse(document.getElementById('seed').textContent);
+let S, history = [];
+
+function lsGet(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+function lsSet(v){ try{ localStorage.setItem(KEY, JSON.stringify(v)); }catch(e){} }
+const local = lsGet();
+function validState(s){ return !!(s && Array.isArray(s.cols) && s.cols.length && Array.isArray(s.days) && s.days.length &&
+  s.days.every(d=>d && typeof d.date==='string' && Array.isArray(d.cells))); }
+S = (validState(local) && (local.savedAt||0) >= (seed.savedAt||0)) ? local : JSON.parse(JSON.stringify(seed));
+if(local && !validState(local)){ try{ localStorage.setItem(KEY+'.broken', JSON.stringify(local)); }catch(e){} }
+
+function migrate(){ Object.keys(seed).forEach(k=>{ if(S[k]===undefined){ S[k]=JSON.parse(JSON.stringify(seed[k]));
+  if(k==='places') S.days.forEach(d=>{ const sd=seed.days.find(x=>x.date===d.date); if(sd&&sd.place&&!d.place) d.place=JSON.parse(JSON.stringify(sd.place)); }); } }); }
+migrate();
+function snapshot(){ history.push(JSON.stringify(S)); if(history.length>50) history.shift(); }
+function meIdx(){ const u=window.TripSync&&TripSync.user(); const i=(S.people||[]).indexOf(u); return i<0?0:i; }
+function stampBills(){ const u=(window.TripSync&&TripSync.user())||''; const now=new Date().toISOString();
+  (S.expenses||[]).forEach(e=>{ if(!e.addedAt){ e.addedAt=now; if(u&&!e.addedBy) e.addedBy=u; } }); }
+function save(){ S.savedAt = Date.now(); stampBills(); lsSet(S); if(window.TripSync) TripSync.dirty(); }
+function commit(fn){ snapshot(); fn(); save(); }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),1800); }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function parseD(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); }
+function isoOf(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+
+function kind(t){
+  if(/🚗|🧳|🏠|📍/.test(t)) return 'drive';
+  if(/🍽️|☕|🍨|👨‍👩‍👧/.test(t)) return 'food';
+  if(/🔥|🕺|🍹|❤️|🌊|🎶/.test(t)) return 'night';
+  if(/🏖️|🌅|🌴|🏊/.test(t)) return 'beach';
+  if(/🏰|🏞️|🛶|📸/.test(t)) return 'sight';
+  if(/😴|🏨|🏡/.test(t)) return 'rest';
+  return '';
+}
+function fmtCell(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'); }
+
+/* ---------- header ---------- */
+function renderHeader(){
+  $('#title').textContent = S.title;
+  $('#subtitle').textContent = S.subtitle;
+  const now=new Date(); now.setHours(0,0,0,0);
+  if(!S.days.length) return;
+  const start=parseD(S.days[0].date), end=parseD(S.days[S.days.length-1].date);
+  const diff=Math.round((start-now)/864e5);
+  if(diff>0){ $('#countNum').textContent=diff; $('#countLbl').textContent=diff===1?'day to go':'days to go'; }
+  else if(now<=end){ $('#countNum').textContent='Day '+(Math.round((now-start)/864e5)+1); $('#countLbl').textContent='of '+S.days.length+' · enjoy!'; }
+  else { $('#countNum').textContent='✓'; $('#countLbl').textContent='trip done'; }
+}
+$('#title').addEventListener('blur',e=>{ const v=e.target.textContent.trim(); if(v!==S.title) commit(()=>S.title=v); });
+
+/* ---------- plan table ---------- */
+function nowSlot(){
+  const n=new Date(), h=n.getHours();
+  let dayIso=isoOf(n), col=-1;
+  if(h>=6) col=Math.floor((h-6)/2);
+  else if(h<2){ col=9; const y=new Date(n); y.setDate(y.getDate()-1); dayIso=isoOf(y); }
+  return {dayIso,col};
+}
+function renderPlan(){
+  const ns=nowSlot(), todayIso=isoOf(new Date());
+  const inTrip=S.days.some(d=>d.date===ns.dayIso);
+  let h='<thead><tr><th class="date">Date</th>'+S.cols.map((c,i)=>`<th class="${inTrip&&i===ns.col?'now':''}">${esc(c)}</th>`).join('')+'<th>💰 Spent</th></tr></thead><tbody>';
+  S.days.forEach((d,r)=>{
+    const dt=parseD(d.date), st=S.stays[d.stay];
+    h+=`<tr class="${d.date===todayIso?'today':''}"><td class="date"><div class="d"><div class="dn">${dt.getDate()} ${MON[dt.getMonth()]}</div><div class="dw">${DOW[dt.getDay()]}</div>`+
+       (st?`<button class="stay-badge" data-go-stays>${esc(st.name)}</button>`:'')+`</div>
+       <div class="row-tools"><button class="btn sm" data-edit-day="${r}" title="Edit date/stay">✎</button><button class="btn sm" data-up="${r}" title="Move up">↑</button><button class="btn sm ghost" data-del-day="${r}" title="Delete day">✕</button></div></td>`;
+    const N=S.cols.length; let c=0;
+    while(c<N){
+      const n=Math.min(spanAt(d,c),N-c), t=d.cells[c]||'';
+      const k=kind(t), hl=/\*\*/.test(t);
+      const now = d.date===ns.dayIso && ns.col>=c && ns.col<c+n;
+      const place=(d.place||{})[c], note=(d.note||{})[c], cost=slotCost(d,c,n);
+      const hidden=n>1? [...new Set(d.cells.slice(c+1,c+n).filter(x=>x&&x!==t&&x!=='—'))].join(' · ') : '';
+      h+=`<td class="cell ${k?'k-'+k:''} ${hl?'hl':''} ${now?'nowcell':''} ${n>1?'merged':''} ${sel.has(r+','+c)?'sel':''}" colspan="${n}" style="--n:${n}" data-r="${r}" data-c="${c}"${hidden?` title="Merged slots also had: ${esc(hidden)}"`:''}>`+
+         `<div class="c" contenteditable="${selMode?'false':'true'}" spellcheck="false" data-r="${r}" data-c="${c}">${fmtCell(t)}</div>`+
+         (place||(d.plink||{})[c]?`<a class="plc" target="_blank" rel="noopener" href="${esc((d.plink||{})[c]||mapsUrl(place))}" title="Open in Google Maps">📍 ${esc(place||'Open pinned location')}</a>`:'')+
+         (note?`<div class="nt">${esc(note)}</div>`:'')+
+         (n>1?`<span class="mtag">⟷ ${esc(rangeLbl(c,n))}</span>`:'')+
+         `<div class="billrow">${cost?`<button class="cost" data-open="${r},${c}" title="See bills">🧾 ${inr(cost)}${billCount(d,c,n)>1?' · '+billCount(d,c,n):''}</button>`:''}<button class="addbill" data-bill="${r},${c}" title="Add a bill for this slot">＋ bill</button></div>`+
+         `<div class="ctools"><button class="star" data-star="${r},${c}" title="Highlight">⭐</button><button data-open="${r},${c}" title="Place, note, money">⋯</button>`+
+         (c+n<N?`<button data-merge="${r},${c}" title="Merge with next slot">⇥</button>`:'')+
+         (n>1?`<button data-split="${r},${c}" title="Split back">⇹</button>`:'')+`</div></td>`;
+      c+=n;
+    }
+    const dc=dayCost(d), perDay=(+S.budget.total||0)/(S.days.length||1);
+    h+=`<td class="spent">${dc?`<b class="${perDay&&dc>perDay?'over-t':''}">${inr(dc)}</b>${topCats(d)}`:'<span class="muted">—</span>'}<button class="btn sm" data-addexp="${r}" title="Add a spend for this day">＋ ₹</button></td></tr>`;
+  });
+  const N=S.cols.length, byCol=S.cols.map((_,i)=>S.expenses.filter(e=>e.slot===i&&S.days.some(d=>d.date===e.date)).reduce((s,e)=>s+e.amt,0));
+  const all=S.expenses.reduce((s,e)=>s+e.amt,0);
+  h+='</tbody><tfoot><tr><td class="date"><div class="d">💰 By time slot</div></td>'+byCol.map(v=>`<td>${v?inr(v):'<span class="muted">—</span>'}</td>`).join('')+`<td style="color:var(--sun)">${inr(all)}</td></tr></tfoot>`;
+  const t=$('#planTbl'); t.innerHTML=h; t.classList.toggle('selmode',selMode); t.classList.toggle('compact',compact);
+  renderPlanStats(); renderPlaces(); renderPlanMoney();
+}
+
+/* ---------- plan: helpers for places / merge / money ---------- */
+const PTYPES={Beach:'🏖️',Food:'🍽️',Sightseeing:'🏰',Nightlife:'🔥',Shopping:'🛍️',Activity:'🛶',Stay:'🏨',Other:'📍'};
+let selMode=false, sel=new Set(), compact=false, cm=null;
+try{ compact=localStorage.getItem(KEY+'.compact')==='1'; }catch(e){}
+function spanAt(d,c){ return Math.max(1, +((d.span||{})[c])||1); }
+function cellStart(d,c){ let s=0; const N=S.cols.length; while(s<N){ const n=spanAt(d,s); if(c<s+n) return s; s+=n; } return c; }
+function colStart(i){ const p=(S.cols[i]||'').split('–'); if(p.length<2) return S.cols[i]||''; const a=p[0].trim(); return /M$/.test(a)?a:a+' '+(p[1].trim().split(' ')[1]||''); }
+function colEnd(i){ const p=(S.cols[i]||'').split('–'); return (p[1]||p[0]||'').trim(); }
+function rangeLbl(c,n){ return n>1? colStart(c)+' – '+colEnd(c+n-1) : S.cols[c]; }
+function dayLbl(d){ const dt=parseD(d.date); return dt.getDate()+' '+MON[dt.getMonth()]+' '+DOW[dt.getDay()]; }
+function mapsUrl(p){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(/goa|pune/i.test(p)?p:p+', Goa'); }
+function slotCost(d,c,n){ return S.expenses.filter(e=>e.date===d.date&&e.slot!=null&&e.slot>=c&&e.slot<c+n).reduce((s,e)=>s+e.amt,0); }
+function dayCost(d){ return S.expenses.filter(e=>e.date===d.date).reduce((s,e)=>s+e.amt,0); }
+function topCats(d){ const m={}; S.expenses.filter(e=>e.date===d.date).forEach(e=>m[e.cat]=(m[e.cat]||0)+e.amt);
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`<span class="mini">${esc(catLabel(k))} ${inr(v)}</span>`).join(''); }
+function splitFor(mode,date,by){ if(mode==='all') return S.people.map((_,i)=>i); if(mode==='couple') return S.couple.slice(); if(mode==='payer') return [by]; return defaultSplit(date); }
+function starify(t,on){ t=t.replace(/\*\*/g,''); if(!on||!t) return t; return /^(\S+\s)(.*)$/u.test(t)? t.replace(/^(\S+\s)(.*)$/u,'$1**$2**') : '**'+t+'**'; }
+function guessType(t){ return {food:'Food',beach:'Beach',sight:'Sightseeing',night:'Nightlife',rest:'Stay'}[kind(t)]||'Other'; }
+function ensurePlace(name,type){ if(name && !S.places.some(p=>p.name.toLowerCase()===name.toLowerCase())) S.places.push({name,type:type||'Other',note:'',visited:false}); }
+function fillSel(el,html,keep){ const v=el.value; el.innerHTML=html; if(keep&&[...el.options].some(o=>o.value===v)) el.value=v; }
+function dayOpts(blank){ return (blank?`<option value="">${blank}</option>`:'')+S.days.map((d,r)=>`<option value="${r}">${dayLbl(d)}</option>`).join(''); }
+function colOpts(blank){ return (blank?`<option value="">${blank}</option>`:'')+S.cols.map((c,i)=>`<option value="${i}">${esc(c)}</option>`).join(''); }
+function catOpts(){ return S.budget.cats.map(c=>`<option value="${c.id}">${esc(c.label)}</option>`).join(''); }
+function pplOpts(){ return S.people.map((p,i)=>`<option value="${i}">${esc(p)}</option>`).join(''); }
+function whereIs(name){ const out=[]; const lc=name.toLowerCase();
+  S.days.forEach((d,r)=>Object.entries(d.place||{}).forEach(([c,p])=>{ c=+c; if(p&&p.toLowerCase()===lc && cellStart(d,c)===c) out.push({r,c,lbl:dayLbl(d).replace(/ \w+$/,'')+' · '+colStart(c)}); }));
+  return out.sort((a,b)=>a.r-b.r||a.c-b.c); }
+
+function renderPlanStats(){
+  const spent=S.expenses.reduce((s,e)=>s+e.amt,0), total=+S.budget.total||0, today=isoOf(new Date());
+  const td=S.expenses.filter(e=>e.date===today).reduce((s,e)=>s+e.amt,0);
+  const sched=S.places.filter(p=>whereIs(p.name).length).length, vis=S.places.filter(p=>p.visited).length;
+  const cm={}; S.expenses.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amt); const top=Object.entries(cm).sort((a,b)=>b[1]-a[1])[0];
+  $('#planStats').innerHTML=`
+   <div class="stat"><span>Days</span><b>${S.days.length}</b><small>${S.stays.length} stays</small></div>
+   <div class="stat"><span>📍 Places</span><b>${S.places.length}</b><small>${sched} in plan · ${vis} visited</small></div>
+   <div class="stat ${spent>total?'bad':''}"><span>Spent / budget</span><b>${inr(spent)}</b><div class="meter"><i class="${spent>total?'over':''}" style="width:${total?Math.min(100,spent/total*100):0}%"></i></div><small>${inr(Math.max(0,total-spent))} left of ${inr(total)}</small></div>
+   <div class="stat"><span>Today</span><b>${inr(td)}</b><small>${S.days.some(d=>d.date===today)?'on trip':'not a trip day'}</small></div>
+   <div class="stat"><span>Top category</span><b style="font-size:17px">${top?esc(catLabel(top[0])):'—'}</b><small>${top?inr(top[1]):'no spends yet'}</small></div>`;
+}
+
+function renderPlaces(){
+  const names=[...new Set([...S.places.map(p=>p.name),...S.food.map(f=>f.name)])];
+  $('#placeList').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  fillSel($('#pl-type'),Object.entries(PTYPES).map(([k,v])=>`<option value="${k}">${v} ${k}</option>`).join(''),true);
+  fillSel($('#pl-day'),dayOpts('— Not scheduled yet —'),true);
+  fillSel($('#pl-slot'),colOpts(),true);
+  const rows=S.places.map((p,i)=>({p,i,w:whereIs(p.name),sp:S.expenses.filter(e=>(e.place||'').toLowerCase()===p.name.toLowerCase()).reduce((s,e)=>s+e.amt,0)}))
+    .sort((a,b)=> (a.w.length?0:1)-(b.w.length?0:1) || (a.w[0]&&b.w[0]? a.w[0].r-b.w[0].r||a.w[0].c-b.w[0].c : 0));
+  const sched=rows.filter(x=>x.w.length).length;
+  $('#plCount').textContent=`${S.places.length} places · ${sched} scheduled · ${S.places.length-sched} unscheduled · ${S.places.filter(p=>p.visited).length} visited`;
+  $('#plTbl').innerHTML='<thead><tr><th>✓</th><th>Place</th><th>Type</th><th>When (tap to open)</th><th>Note</th><th style="text-align:right">Spent</th><th></th></tr></thead><tbody>'+
+   (rows.length? rows.map(({p,i,w,sp})=>`<tr>
+     <td><input type="checkbox" style="width:auto" data-pv="${i}" ${p.visited?'checked':''} title="Visited"></td>
+     <td style="font-weight:600;${p.visited?'text-decoration:line-through;color:var(--muted)':''}">${PTYPES[p.type]||'📍'} <a href="${mapsUrl(p.name)}" target="_blank" rel="noopener" style="color:inherit">${esc(p.name)}</a></td>
+     <td><select data-pt="${i}" style="padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">${Object.keys(PTYPES).map(k=>`<option ${k===p.type?'selected':''}>${k}</option>`).join('')}</select></td>
+     <td>${w.length? w.map(x=>`<button class="pchip" data-open="${x.r},${x.c}">${esc(x.lbl)}</button>`).join('') : '<span class="muted">Not in plan</span>'}</td>
+     <td><input data-pn="${i}" value="${esc(p.note)}" placeholder="—"></td>
+     <td class="n">${sp?inr(sp):'<span class="muted">—</span>'}</td>
+     <td style="white-space:nowrap"><button class="btn sm" data-pplan="${i}" title="Schedule into a slot">＋ Plan</button><button class="btn sm ghost" data-pdel="${i}">✕</button></td></tr>`).join('')
+    : '<tr><td colspan="7" class="muted" style="text-align:center;padding:16px">No places yet — add one above.</td></tr>')+'</tbody>';
+}
+$('#pl-day').addEventListener('change',()=>{ const r=$('#pl-day').value; if(r==='') return; const d=S.days[r];
+  const free=S.cols.findIndex((_,c)=>cellStart(d,c)===c && !(d.place||{})[c] && (!d.cells[c]||d.cells[c]==='—')); if(free>=0) $('#pl-slot').value=free; });
+$('#pl-add').onclick=()=>{
+  const name=$('#pl-name').value.trim(); if(!name){ toast('Enter a place name'); $('#pl-name').focus(); return; }
+  const type=$('#pl-type').value, note=$('#pl-note').value.trim(), rv=$('#pl-day').value;
+  commit(()=>{
+    let p=S.places.find(x=>x.name.toLowerCase()===name.toLowerCase());
+    if(!p){ p={name,type,note,visited:false}; S.places.push(p); } else { p.type=type; if(note) p.note=note; }
+    if(rv!==''){ const d=S.days[+rv], c=cellStart(d,+$('#pl-slot').value);
+      d.place=d.place||{}; d.place[c]=name;
+      if(note){ d.note=d.note||{}; if(!d.note[c]) d.note[c]=note; }
+      if(!d.cells[c]||d.cells[c]==='—'||$('#pl-replace').checked) d.cells[c]=PTYPES[type]+' '+name; }
+  });
+  $('#pl-name').value=''; $('#pl-note').value=''; renderPlan(); toast(rv!==''?'Added & scheduled':'Place added');
+};
+$('#pl-name').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#pl-add').click(); });
+$('#pl-name').addEventListener('change',()=>{ const f=S.food.find(x=>x.name===$('#pl-name').value); if(f){ $('#pl-type').value='Food'; if(!$('#pl-note').value) $('#pl-note').value=f.best; } });
+$('#placesPanel').addEventListener('change',e=>{ const t=e.target, d=t.dataset;
+  if(d.pv!==undefined){ commit(()=>S.places[d.pv].visited=t.checked); renderPlan(); }
+  else if(d.pt!==undefined){ commit(()=>S.places[d.pt].type=t.value); renderPlaces(); }
+  else if(d.pn!==undefined){ commit(()=>S.places[d.pn].note=t.value); }
+});
+$('#placesPanel').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
+  if(d.open){ const [r,c]=d.open.split(',').map(Number); openCell(r,c); }
+  else if(d.pplan!==undefined){ const p=S.places[d.pplan]; $('#pl-name').value=p.name; $('#pl-type').value=p.type; $('#pl-note').value=p.note||''; $('#pl-day').focus(); $('#pl-name').scrollIntoView({behavior:'smooth',block:'center'}); toast('Pick a day & slot, then Add'); }
+  else if(d.pdel!==undefined){ const p=S.places[d.pdel]; if(!confirm('Remove '+p.name+' (and its 📍 tags in the plan)?')) return;
+    commit(()=>{ S.days.forEach(x=>Object.keys(x.place||{}).forEach(c=>{ if((x.place[c]||'').toLowerCase()===p.name.toLowerCase()) delete x.place[c]; })); S.places.splice(+d.pdel,1); }); renderPlan(); }
+});
+
+/* slot details modal */
+function openCell(r,c){
+  const d=S.days[r]; c=cellStart(d,c); cm={r,c};
+  const n=spanAt(d,c), N=S.cols.length;
+  $('#cm-title').textContent=dayLbl(d)+' · '+rangeLbl(c,n);
+  $('#cm-text').value=(d.cells[c]||'').replace(/\*\*/g,''); $('#cm-hl').checked=/\*\*/.test(d.cells[c]||'');
+  $('#cm-place').value=(d.place||{})[c]||''; $('#cm-note').value=(d.note||{})[c]||'';
+  $('#cm-span').innerHTML=Array.from({length:N-c},(_,k)=>`<option value="${k+1}">${esc(rangeLbl(c,k+1))}${k?` · ${k+1} slots`:' · this slot only'}</option>`).join('');
+  $('#cm-span').value=n;
+  fillSel($('#cm-cat'),catOpts()); $('#cm-cat').value=({food:'food',night:'night',drive:'fuel',sight:'act',beach:'act'})[kind(d.cells[c]||'')]||'food';
+  fillSel($('#cm-by'),pplOpts()); $('#cm-by').value=meIdx(); $('#cm-amt').value=''; $('#cm-desc').value='';
+  if(!$('#cm-place').value) $('#cm-place').value=derivePlace(d.cells[c]||''); updMap(); renderCellExp(); open('#cellModal'); setTimeout(()=>{ if(!$('#cellModal').contains(document.activeElement)) $('#cm-text').focus(); },50);
+}
+function renderCellExp(){
+  const d=S.days[cm.r], n=+$('#cm-span').value||spanAt(d,cm.c);
+  const list=S.expenses.filter(e=>e.date===d.date&&e.slot!=null&&e.slot>=cm.c&&e.slot<cm.c+n);
+  $('#cm-total').textContent=list.length? '· '+inr(list.reduce((s,e)=>s+e.amt,0)) : '';
+  $('#cm-exp').innerHTML=list.length? list.map(e=>`<div class="xrow"><span>${esc(e.desc)} <span class="muted">· ${esc(catLabel(e.cat))} · ${esc(S.people[e.by]||'?')} paid${e.place?' · 📍'+esc(e.place):''}${e.addedBy?' · added by '+esc(e.addedBy):''}</span></span><span><span class="n">${inr(e.amt)}</span> <button class="btn sm ghost" data-cmdel="${e.id}">✕</button></span></div>`).join('') : '<p class="muted" style="margin:4px 0">Nothing spent here yet.</p>';
+}
+$('#cm-span').addEventListener('change',renderCellExp);
+$('#cm-exp').addEventListener('click',e=>{ const b=e.target.closest('[data-cmdel]'); if(!b) return; commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.cmdel)); renderCellExp(); renderMoney(); });
+$('#cm-addexp').onclick=()=>{
+  const amt=parseFloat($('#cm-amt').value); if(!(amt>0)){ toast('Enter an amount'); $('#cm-amt').focus(); return; }
+  const d=S.days[cm.r], by=+$('#cm-by').value, place=$('#cm-place').value.trim();
+  const desc=$('#cm-desc').value.trim()||place||$('#cm-text').value.replace(/\*\*/g,'').trim()||catLabel($('#cm-cat').value);
+  commit(()=>{ S.expenses.push({id:Date.now().toString(36),date:d.date,cat:$('#cm-cat').value,amt,desc,by,split:splitFor($('#cm-split').value,d.date,by),mode:'UPI',slot:cm.c,place:place||undefined}); ensurePlace(place,guessType($('#cm-text').value)); });
+  $('#cm-amt').value=''; $('#cm-desc').value=''; renderCellExp(); renderMoney(); toast('Added '+inr(amt));
+};
+$('#cm-amt').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#cm-addexp').click(); });
+$('#cm-save').onclick=()=>{
+  const d=S.days[cm.r], c=cm.c, n=+$('#cm-span').value, place=$('#cm-place').value.trim(), note=$('#cm-note').value.trim();
+  commit(()=>{
+    d.cells[c]=starify($('#cm-text').value.trim(),$('#cm-hl').checked);
+    d.place=d.place||{}; if(place) d.place[c]=place; else delete d.place[c];
+    d.note=d.note||{}; if(note) d.note[c]=note; else delete d.note[c];
+    d.span=d.span||{}; Object.keys(d.span).forEach(k=>{ if(+k>c&&+k<c+n) delete d.span[k]; });
+    if(n>1) d.span[c]=n; else delete d.span[c];
+    ensurePlace(place,guessType(d.cells[c]));
+  });
+  close(); renderPlan(); toast('Slot saved');
+};
+
+/* merge / split selection mode */
+function updSel(){ $('#selCount').textContent= sel.size? sel.size+' selected' : 'Tap slots to select'; }
+$('#selModeBtn').onclick=()=>{ selMode=!selMode; sel.clear(); $('#selBar').classList.toggle('on',selMode); $('#selModeBtn').classList.toggle('primary',selMode); updSel(); renderPlan(); };
+$('#selDone').onclick=()=>{ if(selMode) $('#selModeBtn').click(); };
+$('#planTbl').addEventListener('click',e=>{ if(!selMode) return; const td=e.target.closest('td.cell'); if(!td||e.target.closest('a')) return;
+  const k=td.dataset.r+','+td.dataset.c; sel.has(k)?sel.delete(k):sel.add(k); td.classList.toggle('sel'); updSel(); });
+$('#mergeSel').onclick=()=>{
+  const by={}; sel.forEach(k=>{ const [r,c]=k.split(',').map(Number); (by[r]=by[r]||[]).push(c); });
+  const rows=Object.keys(by).filter(r=>by[r].length>1); if(!rows.length){ toast('Select 2 or more slots in the same day'); return; }
+  commit(()=>rows.forEach(r=>{ const d=S.days[r], cs=by[r].sort((a,b)=>a-b), a=cs[0], last=cs[cs.length-1], end=last+spanAt(d,last);
+    d.span=d.span||{}; Object.keys(d.span).forEach(k=>{ if(+k>=a&&+k<end) delete d.span[k]; }); d.span[a]=end-a; }));
+  sel.clear(); updSel(); renderPlan(); toast('Merged');
+};
+$('#splitSel').onclick=()=>{ if(!sel.size){ toast('Select merged slots to split'); return; }
+  commit(()=>sel.forEach(k=>{ const [r,c]=k.split(',').map(Number); if(S.days[r].span) delete S.days[r].span[c]; }));
+  sel.clear(); updSel(); renderPlan(); toast('Split');
+};
+$('#compactChk').checked=compact;
+$('#compactChk').onchange=e=>{ compact=e.target.checked; try{ localStorage.setItem(KEY+'.compact',compact?'1':'0'); }catch(err){} renderPlan(); };
+
+/* auto place detection, suggestions, inline bills */
+const GENERIC=/\b(breakfast|lunch|dinner|brunch|snacks?|dessert|coffee|drinks?|drive|driving|check[- ]?in|check[- ]?out|sleep|relax|rest|pool|freshen up|nightlife|clubbing|club|music|party|friends?|family|adventure|sunset|sunrise|beach walk|shack|return|reach|back|visit|explore|shopping|chill|at|in|and|with|to|the|near|for|then|via|on|from|of)\b/gi;
+function derivePlace(t){
+  if(!t) return ''; if(kind(t)==='drive' && !/\bat\b/i.test(t)) return '';
+  let s=t.replace(/https?:\/\/\S+/g,' ').replace(/\*\*/g,'').replace(/[\p{Extended_Pictographic}‍️]/gu,' ').replace(GENERIC,' ').replace(/[→\-–—·,:+&@|/()!?.]+/g,' ').replace(/\s+/g,' ').trim();
+  if(s.length<3||!/[a-z]/i.test(s)||/^(beach|hotel|villa|home|room|market|pune|goa|south goa|north goa|kayaking|walk|cafe|restaurant|bar|pub)$/i.test(s)) return '';
+  return s;
+}
+function billCount(d,c,n){ return S.expenses.filter(e=>e.date===d.date&&e.slot!=null&&e.slot>=c&&e.slot<c+n).length; }
+function catGuess(t){ return ({food:'food',night:'night',drive:'fuel',sight:'act',beach:'act',rest:'stay'})[kind(t||'')]||'food'; }
+let mapT=null;
+function updMap(){ const q=$('#cm-place').value.trim()||derivePlace($('#cm-text').value);
+  $('#cm-mapwrap').style.display=q?'block':'none'; if(!q) return;
+  const src='https://www.google.com/maps?q='+encodeURIComponent(/goa|pune/i.test(q)?q:q+', Goa')+'&output=embed';
+  if($('#cm-map').getAttribute('src')!==src) $('#cm-map').setAttribute('src',src);
+  $('#cm-maplink').href=(cm&&(S.days[cm.r].plink||{})[cm.c])||mapsUrl(q);
+  if(cm) $('#cm-review').href='explore.html?q='+encodeURIComponent(q)+'&day='+cm.r+'&slot='+cm.c; }
+['cm-place','cm-text'].forEach(id=>$('#'+id).addEventListener('input',()=>{ clearTimeout(mapT); mapT=setTimeout(updMap,700); }));
+
+// live suggestions while typing in a slot
+const sugg=document.createElement('div'); sugg.className='sugg'; document.body.appendChild(sugg);
+let suggFor=null;
+function hideSugg(){ sugg.style.display='none'; suggFor=null; }
+$('#planTbl').addEventListener('input',e=>{ const c=e.target.closest('.c'); if(!c) return;
+  const q=derivePlace(c.innerText); if(!q||q.length<2){ hideSugg(); return; }
+  const lq=q.toLowerCase(), seen=new Set();
+  const pool=[...S.places.map(p=>({n:p.name,s:(PTYPES[p.type]||'📍')+' '+p.type})),...S.food.map(f=>({n:f.name,s:'🍽️ '+(S.areas.find(a=>a.id===f.area)||{label:''}).label.split('·')[0]+(f.rating?' · ★ '+f.rating:'')}))]
+    .filter(x=>{ const l=x.n.toLowerCase(); if(seen.has(l)) return false; seen.add(l); return l.includes(lq)||lq.split(' ').every(w=>w.length>2&&l.includes(w)); }).slice(0,5);
+  sugg.innerHTML=`<div class="sh">📍 Will tag location: <b>${esc(q)}</b></div>`+
+    pool.map(x=>`<div class="si" data-pick="${esc(x.n)}"><b>${esc(x.n)}</b><small>${esc(x.s)}</small></div>`).join('')+
+    `<a class="si go" href="${mapsUrl(q)}" target="_blank" rel="noopener">🔎 Search “${esc(q)}” on Google Maps ↗</a>`;
+  sugg.style.display='block'; suggFor=c; placeSugg();
+});
+sugg.addEventListener('mousedown',e=>{ const it=e.target.closest('[data-pick]'); if(!it||!suggFor) return; e.preventDefault();
+  const name=it.dataset.pick, c=suggFor, t=c.innerText.trim(), q=derivePlace(t);
+  const i=q? t.toLowerCase().lastIndexOf(q.toLowerCase()) : -1;
+  c.innerText = i>=0 ? t.slice(0,i)+name+t.slice(i+q.length) : (t? t+' · '+name : name);
+  hideSugg(); c.blur(); });
+$('#planTbl').addEventListener('focusout',e=>{ const c=e.target.closest('.c'); if(c) setTimeout(()=>{ if(suggFor===c && !sugg.matches(':hover')) hideSugg(); },200); });
+function placeSugg(){ if(!suggFor||!document.body.contains(suggFor)){ hideSugg(); return; } const rc=suggFor.parentElement.getBoundingClientRect();
+  const below=innerHeight-rc.bottom>sugg.offsetHeight+8; sugg.style.left=Math.max(8,Math.min(rc.left,innerWidth-300))+'px';
+  sugg.style.top=(below? rc.bottom+4 : Math.max(8,rc.top-sugg.offsetHeight-4))+'px'; }
+document.querySelector('.tbl-wrap').addEventListener('scroll',placeSugg,{passive:true}); addEventListener('scroll',placeSugg,{passive:true}); addEventListener('resize',placeSugg);
+
+// inline "+ bill" under each slot
+$('#planTbl').addEventListener('click',e=>{ const b=e.target.closest('[data-bill]'); if(!b||selMode) return;
+  const [r,c]=b.dataset.bill.split(',').map(Number);
+  const d0=S.days[r], pl0=(d0.place||{})[c]||derivePlace(d0.cells[c]), txt0=(d0.cells[c]||'').replace(/\*\*/g,'').replace(/[\p{Extended_Pictographic}\u200d\ufe0f]/gu,'').trim();
+  const guess0 = pl0 && txt0.toLowerCase().includes(pl0.toLowerCase()) ? txt0 : (pl0 ? (txt0 && txt0!==pl0 ? txt0+' at '+pl0 : pl0) : txt0);
+  b.outerHTML=`<span class="billform"><input type="number" class="billin" inputmode="decimal" placeholder="₹ amount" data-br="${r}" data-bc="${c}"><input class="billdesc" placeholder="Where / what? e.g. Dinner at Thalassa" value="${esc(guess0)}"><select class="billcat">${catOpts()}</select><button class="billok" data-bok="1">✓ Save bill</button></span>`;
+  const f0=$('#planTbl').querySelector('.billform'); if(f0) f0.querySelector('.billcat').value=catGuess(d0.cells[c]);
+  const inp=$('#planTbl').querySelector(`.billin[data-br="${r}"][data-bc="${c}"]`); inp.focus(); });
+function saveBill(form){
+  const inp=form.querySelector('.billin'), amt=parseFloat(inp.value); if(!(amt>0)){ toast('Enter the bill amount'); inp.focus(); return; }
+  const r=+inp.dataset.br, c=+inp.dataset.bc, d=S.days[r], place=(d.place||{})[c]||derivePlace(d.cells[c]);
+  const desc=form.querySelector('.billdesc').value.trim(); if(!desc){ toast('Add where / what this bill was for'); form.querySelector('.billdesc').focus(); return; }
+  const me=(window.TripSync&&TripSync.user())||'', byIdx=Math.max(0,S.people.indexOf(me));
+  commit(()=>S.expenses.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),date:d.date,cat:form.querySelector('.billcat').value||catGuess(d.cells[c]),amt,desc,by:byIdx,split:defaultSplit(d.date),mode:'UPI',slot:c,place:place||undefined}));
+  renderMoney(); toast('🧾 Bill added '+inr(amt)+' — tap it to edit payer/category');
+}
+$('#planTbl').addEventListener('keydown',e=>{ const f=e.target.closest('.billform'); if(!f) return;
+  if(e.key==='Enter'){ e.preventDefault(); saveBill(f); } else if(e.key==='Escape'){ renderPlan(); } });
+$('#planTbl').addEventListener('click',e=>{ const b=e.target.closest('[data-bok]'); if(b) saveBill(b.closest('.billform')); });
+$('#planTbl').addEventListener('focusout',e=>{ const f=e.target.closest('.billform'); if(!f) return;
+  setTimeout(()=>{ if(document.body.contains(f) && !f.contains(document.activeElement) && !f.querySelector('.billin').value) renderPlan(); },150); });
+
+/* money panel inside plan */
+function renderPlanMoney(){
+  fillSel($('#pm-cat'),catOpts(),true); fillSel($('#pm-by'),pplOpts(),true);
+  fillSel($('#pm-day'),dayOpts(),true);
+  if(!$('#pm-amt').value) $('#pm-by').value=meIdx(); fillSel($('#pm-slot'),colOpts('— Whole day —'),true);
+  if(!$('#pm-day').dataset.init){ const t=S.days.findIndex(d=>d.date===isoOf(new Date())); $('#pm-day').value=t>=0?t:0; $('#pm-day').dataset.init=1; }
+  const cats=S.budget.cats, days=S.days, ex=S.expenses, perDay=(+S.budget.total||0)/(days.length||1);
+  const cell=(list)=>list.reduce((s,e)=>s+e.amt,0);
+  const rowsData=days.map(d=>({lbl:dayLbl(d),list:ex.filter(e=>e.date===d.date)}));
+  const other=ex.filter(e=>!days.some(d=>d.date===e.date)); if(other.length) rowsData.push({lbl:'Other dates',list:other});
+  const colMax=cats.map(c=>Math.max(0,...rowsData.map(r=>cell(r.list.filter(e=>e.cat===c.id)))));
+  let h='<thead><tr><th>Day</th>'+cats.map(c=>`<th>${esc(c.label)}</th>`).join('')+'<th>Total</th><th>vs daily budget</th></tr></thead><tbody>';
+  rowsData.forEach(r=>{ const tot=cell(r.list);
+    h+=`<tr><td>${esc(r.lbl)}</td>`+cats.map((c,ci)=>{ const l=r.list.filter(e=>e.cat===c.id), v=cell(l);
+      return `<td class="${v?'':'z'} ${v&&v===colMax[ci]&&l.length?'hot':''}" title="${esc(l.map(e=>e.desc+' '+inr(e.amt)).join('\n'))}">${v?inr(v):'—'}</td>`; }).join('')+
+      `<td><b>${tot?inr(tot):'—'}</b></td><td class="${tot>perDay?'over-t':'muted'}">${tot? (tot>perDay?'+':'−')+inr(Math.abs(tot-perDay)) : ''}</td></tr>`; });
+  const all=cell(ex);
+  h+='<tr class="tot"><td>Total</td>'+cats.map(c=>`<td>${inr(cell(ex.filter(e=>e.cat===c.id)))}</td>`).join('')+`<td>${inr(all)}</td><td></td></tr>`;
+  h+='<tr class="bud"><td>Budget</td>'+cats.map(c=>{ const sp=cell(ex.filter(e=>e.cat===c.id)); return `<td class="${c.amt&&sp>c.amt?'over-t':''}">${c.amt?inr(c.amt):'—'}</td>`; }).join('')+`<td>${inr(S.budget.total)}</td><td></td></tr>`;
+  h+='<tr class="bud"><td>Left</td>'+cats.map(c=>{ const l=(+c.amt||0)-cell(ex.filter(e=>e.cat===c.id)); return `<td class="${l<0?'over-t':''}">${c.amt?(l<0?'−':'')+inr(Math.abs(l)):'—'}</td>`; }).join('')+`<td class="${all>S.budget.total?'over-t':''}">${inr((+S.budget.total||0)-all)}</td><td></td></tr></tbody>`;
+  $('#pmTbl').innerHTML=h;
+  $('#pmDays').innerHTML=rowsData.filter(r=>r.list.length).map(r=>`<details class="pd"><summary><span>${esc(r.lbl)} <span class="muted">· ${r.list.length} spend${r.list.length>1?'s':''}</span></span><span style="color:var(--sun)">${inr(cell(r.list))}</span></summary>`+
+    r.list.slice().sort((a,b)=>(a.slot??99)-(b.slot??99)).map(e=>`<div class="xrow"><span><span class="muted">${e.slot!=null?esc(S.cols[e.slot]):'Day'}</span> · ${esc(e.desc)}${e.place?` <a href="${mapsUrl(e.place)}" target="_blank" rel="noopener" class="muted">📍${esc(e.place)}</a>`:''} <span class="muted">· ${esc(catLabel(e.cat))} · ${esc(S.people[e.by]||'?')} paid · split ${e.split.length===S.people.length?'all':e.split.length}${e.addedBy?' · added by '+esc(e.addedBy):''}</span></span><span><span class="n">${inr(e.amt)}</span> <button class="btn sm ghost" data-pmdel="${e.id}">✕</button></span></div>`).join('')+'</details>').join('')
+    || '<p class="muted">No spends yet. Add one above, or tap ⋯ on any slot to log money right where it happened.</p>';
+}
+$('#pmDays').addEventListener('click',e=>{ const b=e.target.closest('[data-pmdel]'); if(!b) return; if(confirm('Delete this spend?')){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.pmdel)); renderMoney(); } });
+$('#pm-add').onclick=()=>{
+  const amt=parseFloat($('#pm-amt').value); if(!(amt>0)){ toast('Enter an amount'); $('#pm-amt').focus(); return; }
+  const d=S.days[+$('#pm-day').value], by=+$('#pm-by').value, sv=$('#pm-slot').value, slot=sv===''?null:cellStart(d,+sv);
+  const desc=$('#pm-desc').value.trim(); const isPlace=S.places.some(p=>p.name.toLowerCase()===desc.toLowerCase());
+  const place= isPlace? desc : (slot!=null? (d.place||{})[slot] : undefined);
+  commit(()=>S.expenses.push({id:Date.now().toString(36),date:d.date,cat:$('#pm-cat').value,amt,desc:desc||catLabel($('#pm-cat').value),by,split:splitFor($('#pm-split').value,d.date,by),mode:'UPI',slot,place:place||undefined}));
+  $('#pm-amt').value=''; $('#pm-desc').value=''; renderMoney(); toast('Added '+inr(amt));
+};
+$('#pm-amt').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#pm-add').click(); });
+const tbl=$('#planTbl');
+tbl.addEventListener('focusin',e=>{ const c=e.target.closest('.c'); if(!c) return; c.textContent=S.days[c.dataset.r].cells[c.dataset.c]; });
+tbl.addEventListener('focusout',e=>{
+  const c=e.target.closest('.c'); if(!c) return;
+  const r=+c.dataset.r, k=+c.dataset.c; let v=c.innerText.replace(/\n+/g,' ').trim();
+  const mUrl=window.TripData&&TripData.findMapsUrl(v);
+  if(mUrl){ const info=TripData.parseMapsUrl(mUrl), rest=v.replace(mUrl,'').replace(/\s+/g,' ').trim();
+    commit(()=>{ const d=S.days[r]; d.plink=d.plink||{}; d.plink[k]=mUrl; if(info.name){ d.place=d.place||{}; d.place[k]=info.name; ensurePlace(info.name,guessType(rest)); } });
+    v = info.name ? ((rest||'📍')+' '+info.name).trim() : (rest||'📍 Place (from link)');
+    if(!info.name && window.TripSync && TripSync.configured()){ toast('🔗 Reading the Maps link…');
+      TripSync.api('place',{q:mUrl}).then(res=>{ const nm=(res.resolved&&res.resolved.name)||(res.places&&res.places[0]&&res.places[0].name); if(!nm) throw new Error(res.error||'no name');
+        commit(()=>{ const d=S.days[r]; d.place=d.place||{}; d.place[k]=nm; ensurePlace(nm,'Other'); if(/Place \(from link\)$/.test(d.cells[k]||'')||(d.cells[k]||'')==='📍') d.cells[k]=(d.cells[k]||'').replace(/📍.*$/,'📍 '+nm); });
+        renderPlan(); toast('📍 '+nm); }).catch(()=>toast('Could not read that short link — type the place name instead.')); }
+    else if(!info.name) toast('📍 Link saved. (Short links need the shared backend to show the name.)');
+  }
+  if(v!==S.days[r].cells[k]){ const old=S.days[r].cells[k]; let pc=null;
+    commit(()=>{ const d=S.days[r]; d.cells[k]=v; d.place=d.place||{};
+      const o=derivePlace(old), n=derivePlace(v), cur=d.place[k]||'';
+      if(n && n.toLowerCase()!==o.toLowerCase()){ d.place[k]=n; ensurePlace(n,guessType(v)); pc=n; }
+      else if(!n && cur && cur===o){ delete d.place[k]; pc=''; } });
+    if(pc!==null){ const td0=c.parentElement; const a0=td0.querySelector('.plc'); if(a0) a0.remove();
+      if(pc){ c.insertAdjacentHTML('afterend',`<a class="plc" target="_blank" rel="noopener" href="${mapsUrl(pc)}" title="Open in Google Maps">📍 ${esc(pc)}</a>`); toast('📍 Location added: '+pc); }
+      renderPlaces(); renderPlanStats(); } }
+  const td=c.parentElement; ['k-drive','k-food','k-beach','k-night','k-rest','k-sight','hl'].forEach(x=>td.classList.remove(x)); if(kind(v)) td.classList.add('k-'+kind(v)); if(/\*\*/.test(v)) td.classList.add('hl');
+  c.innerHTML=fmtCell(v);
+});
+tbl.addEventListener('keydown',e=>{ if(e.target.closest('.c') && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); e.target.blur(); } });
+tbl.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.star){ const [r,c]=b.dataset.star.split(',').map(Number); commit(()=>{ let t=S.days[r].cells[c]; S.days[r].cells[c]= /\*\*/.test(t)? t.replace(/\*\*/g,'') : (t.match(/^(\S+\s)(.*)$/u)? t.replace(/^(\S+\s)(.*)$/u,'$1**$2**') : '**'+t+'**'); }); renderPlan(); }
+  else if(b.dataset.delDay!==undefined){ const r=+b.dataset.delDay; if(confirm('Delete '+S.days[r].date+'?')){ commit(()=>S.days.splice(r,1)); renderAll(); } }
+  else if(b.dataset.up!==undefined){ const r=+b.dataset.up; if(r>0){ commit(()=>{ const [x]=S.days.splice(r,1); S.days.splice(r-1,0,x); }); renderPlan(); } }
+  else if(b.dataset.editDay!==undefined){ openDay(+b.dataset.editDay); }
+  else if(b.hasAttribute('data-go-stays')){ show('stays'); }
+  else if(b.dataset.open){ const [r,c]=b.dataset.open.split(',').map(Number); openCell(r,c); }
+  else if(b.dataset.merge){ const [r,c]=b.dataset.merge.split(',').map(Number); commit(()=>{ const d=S.days[r]; d.span=d.span||{}; const n=spanAt(d,c), nn=spanAt(d,c+n); delete d.span[c+n]; d.span[c]=n+nn; }); renderPlan(); }
+  else if(b.dataset.split){ const [r,c]=b.dataset.split.split(',').map(Number); commit(()=>{ if(S.days[r].span) delete S.days[r].span[c]; }); renderPlan(); }
+  else if(b.dataset.addexp!==undefined){ $('#pm-day').value=b.dataset.addexp; $('#pm-slot').value=''; $('#pm-amt').scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>$('#pm-amt').focus(),350); }
+});
+$('#addDayBtn').onclick=()=>{
+  commit(()=>{
+    const last=S.days[S.days.length-1];
+    const dt= last? parseD(last.date) : new Date(); if(last) dt.setDate(dt.getDate()+1);
+    S.days.push({date:isoOf(dt),stay:last?last.stay:0,cells:S.cols.map(()=>'')});
+  });
+  renderAll(); toast('Day added');
+};
+$('#resetBtn').onclick=()=>{ if(confirm('Reset everything to the original plan? (You can Undo)')){ commit(()=>{ S=JSON.parse(JSON.stringify(seed)); }); renderAll(); } };
+$('#printBtn').onclick=()=>window.print();
+
+let dayIdx=0;
+function openDay(r){
+  dayIdx=r; $('#d-date').value=S.days[r].date;
+  $('#d-stay').innerHTML=S.stays.map((s,i)=>`<option value="${i}">${esc(s.name)} — ${esc(s.location)}</option>`).join('')+'<option value="-1">— none —</option>';
+  $('#d-stay').value=S.days[r].stay; open('#dayModal');
+}
+$('#d-save').onclick=()=>{ commit(()=>{ S.days[dayIdx].date=$('#d-date').value||S.days[dayIdx].date; S.days[dayIdx].stay=+$('#d-stay').value; S.days.sort((a,b)=>a.date.localeCompare(b.date)); }); close(); renderAll(); };
+
+/* ---------- stays ---------- */
+function renderStays(){
+  $('#staysGrid').innerHTML=S.stays.map((s,i)=>{
+    const nights=S.days.filter(d=>d.stay===i).length;
+    return `<div class="card stay-card" data-i="${i%3}">
+      <input class="big" data-s="${i}" data-k="name" value="${esc(s.name)}">
+      <label>Dates</label><input data-s="${i}" data-k="dates" value="${esc(s.dates)}">
+      <label>Location</label><input data-s="${i}" data-k="location" value="${esc(s.location)}">
+      <label>People</label><input data-s="${i}" data-k="people" value="${esc(s.people)}">
+      <label>Booking link / hotel name</label><input data-s="${i}" data-k="link" value="${esc(s.link)}" placeholder="Paste booking URL or hotel name">
+      <div class="acts">
+        <span class="pill">${nights} day${nights===1?'':'s'} in plan</span>
+        ${s.link?`<a class="btn sm" target="_blank" rel="noopener" href="${/^https?:/.test(s.link)?esc(s.link):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.link+' Goa')}">Open ↗</a>`:''}
+        <a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.location+' Goa')}">Map ↗</a>
+        <button class="btn sm ghost" data-del-stay="${i}">Remove</button>
+      </div></div>`;
+  }).join('');
+}
+$('#staysGrid').addEventListener('change',e=>{ const t=e.target; if(t.dataset.s===undefined) return; commit(()=>S.stays[t.dataset.s][t.dataset.k]=t.value); renderStays(); renderPlan(); });
+$('#staysGrid').addEventListener('click',e=>{ const b=e.target.closest('[data-del-stay]'); if(!b) return; const i=+b.dataset.delStay; if(!confirm('Remove '+S.stays[i].name+'?')) return;
+  commit(()=>{ S.stays.splice(i,1); S.days.forEach(d=>{ if(d.stay===i) d.stay=-1; else if(d.stay>i) d.stay--; }); }); renderAll(); });
+$('#addStayBtn').onclick=()=>{ commit(()=>S.stays.push({name:'🏠 Stay '+(S.stays.length+1),dates:'',location:'',people:'',link:''})); renderStays(); };
+
+/* ---------- food ---------- */
+let area='all', q='', editIdx=-1, slotFood=-1;
+function renderChips(){
+  $('#areaChips').innerHTML=`<button class="chip ${area==='all'?'on':''}" data-a="all">All (${S.food.length})</button>`+
+    S.areas.map(a=>`<button class="chip ${area===a.id?'on':''}" data-a="${a.id}">${esc(a.label)} <span style="opacity:.7">· ${esc(a.tag)}</span></button>`).join('')+
+    `<button class="chip ${area==='fav'?'on':''}" data-a="fav">✅ Visited</button>`;
+}
+$('#areaChips').addEventListener('click',e=>{ const b=e.target.closest('[data-a]'); if(!b) return; area=b.dataset.a; renderChips(); renderFood(); });
+$('#foodSearch').addEventListener('input',e=>{ q=e.target.value.toLowerCase(); renderFood(); });
+function renderFood(){
+  const aLabel=id=>(S.areas.find(a=>a.id===id)||{label:id}).label;
+  const list=S.food.map((f,i)=>({...f,i})).filter(f=> (area==='all'||f.area===area||(area==='fav'&&f.visited)) &&
+     (!q || (f.name+' '+f.cuisine+' '+f.best+' '+f.note).toLowerCase().includes(q)));
+  $('#foodGrid').innerHTML = list.length ? list.map(f=>`<div class="card">
+      <h3>${esc(f.name)}</h3>
+      <div class="meta">📍 ${esc(aLabel(f.area))}</div>
+      <div>${f.rating?`<span class="pill rate">★ ${esc(f.rating)}</span>`:''}<span class="pill">${esc(f.price)}</span>${f.visited?'<span class="pill done">Visited</span>':''}</div>
+      <div class="meta">🍴 ${esc(f.cuisine)}</div>
+      <div class="note"><b>Best for:</b> ${esc(f.best)}</div>
+      ${f.note?`<div class="note">${esc(f.note)}</div>`:''}
+      <div class="acts">
+        <a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name+' '+aLabel(f.area).split('·')[0]+' Goa')}">Maps ↗</a>
+        <button class="btn sm primary" data-slot="${f.i}">＋ Add to plan</button>
+        <button class="btn sm" data-visit="${f.i}">${f.visited?'↺ Unvisit':'✓ Visited'}</button>
+        <button class="btn sm" data-edit="${f.i}">✎</button>
+        <button class="btn sm ghost" data-del="${f.i}">✕</button>
+      </div></div>`).join('') : '<p class="sub">No places match. Add one!</p>';
+}
+$('#foodGrid').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.slot) openSlot(+b.dataset.slot);
+  else if(b.dataset.visit){ const i=+b.dataset.visit; commit(()=>S.food[i].visited=!S.food[i].visited); renderFood(); }
+  else if(b.dataset.edit) openFood(+b.dataset.edit);
+  else if(b.dataset.del){ const i=+b.dataset.del; if(confirm('Remove '+S.food[i].name+'?')){ commit(()=>S.food.splice(i,1)); renderChips(); renderFood(); } }
+});
+function openFood(i){
+  editIdx=i; const f=i>=0?S.food[i]:{area:area!=='all'&&area!=='fav'?area:S.areas[0].id,name:'',cuisine:'',best:'',price:'₹₹',rating:'',note:''};
+  $('#foodModalTitle').textContent=i>=0?'Edit place':'Add place';
+  $('#f-area').innerHTML=S.areas.map(a=>`<option value="${a.id}">${esc(a.label)}</option>`).join('');
+  ['name','area','cuisine','best','price','rating','note'].forEach(k=>$('#f-'+k).value=f[k]||'');
+  open('#foodModal'); $('#f-name').focus();
+}
+$('#addFoodBtn').onclick=()=>openFood(-1);
+$('#f-save').onclick=()=>{
+  const o={}; ['name','area','cuisine','best','price','rating','note'].forEach(k=>o[k]=$('#f-'+k).value.trim());
+  if(!o.name){ toast('Name is required'); return; }
+  commit(()=>{ if(editIdx>=0) Object.assign(S.food[editIdx],o); else S.food.push(o); });
+  close(); renderChips(); renderFood(); toast('Saved');
+};
+function openSlot(i){
+  slotFood=i; $('#slotWhat').textContent=S.food[i].name+' — '+S.food[i].best;
+  $('#s-day').innerHTML=S.days.map((d,r)=>{ const dt=parseD(d.date); return `<option value="${r}">${dt.getDate()} ${MON[dt.getMonth()]} ${DOW[dt.getDay()]}</option>`; }).join('');
+  $('#s-col').innerHTML=S.cols.map((c,k)=>`<option value="${k}">${esc(c)}</option>`).join('');
+  $('#s-col').value = /breakfast/i.test(S.food[i].best)?0 : /lunch/i.test(S.food[i].best)?3 : 7;
+  open('#slotModal');
+}
+$('#s-save').onclick=()=>{
+  const r=+$('#s-day').value, c=+$('#s-col').value, f=S.food[slotFood];
+  const icon=/breakfast|☕/i.test(f.best)?'☕':'🍽️', txt=icon+' '+f.name;
+  commit(()=>{ const cur=S.days[r].cells[c]; S.days[r].cells[c]= $('#s-mode').value==='append'&&cur? cur+' · '+txt : txt; });
+  close(); renderPlan(); toast('Added to plan');
+};
+
+/* ---------- money ---------- */
+const inr = n => '₹' + Math.round(n||0).toLocaleString('en-IN');
+let editExp = null, expFilter = 'all';
+function catLabel(id){ return (S.budget.cats.find(c=>c.id===id)||{label:id}).label; }
+function fuelEst(){ const c=S.car; const km=c.legs.reduce((s,l)=>s+(+l.actual||+l.km||0),0); return {km, litres: c.mileage? km/c.mileage:0, cost: c.mileage? km/c.mileage*c.price:0}; }
+function defaultSplit(date){ const d=S.days.find(x=>x.date===date); return (d && d.stay===0) ? S.couple.filter(i=>i<S.people.length) : S.people.map((_,i)=>i); }
+function tripDefaultDate(){ const t=isoOf(new Date()); if(S.days.some(d=>d.date===t)) return t; return S.days[0]?S.days[0].date:t; }
+function fillExpForm(e){
+  $('#e-cat').innerHTML=S.budget.cats.map(c=>`<option value="${c.id}">${esc(c.label)}</option>`).join('');
+  $('#e-by').innerHTML=S.people.map((p,i)=>`<option value="${i}">${esc(p)}</option>`).join('');
+  $('#e-amt').value=e?e.amt:''; $('#e-desc').value=e?e.desc:'';
+  $('#e-cat').value=e?e.cat:'food'; $('#e-date').value=e?e.date:tripDefaultDate();
+  $('#e-by').value=e?e.by:meIdx(); $('#e-mode').value=e?e.mode:'UPI';
+  renderSplit(e?e.split:defaultSplit($('#e-date').value));
+  $('#e-add').textContent=e?'Save changes':'Add expense'; $('#e-cancel').hidden=!e;
+}
+function renderSplit(sel){
+  $('#e-split').innerHTML=S.people.map((p,i)=>`<label><input type="checkbox" value="${i}" ${sel.includes(i)?'checked':''}>${esc(p)}</label>`).join('')+
+    `<button class="quick" data-q="all">Everyone</button><button class="quick" data-q="couple">Just us two</button>`;
+}
+$('#e-split').addEventListener('click',e=>{ const q=e.target.dataset.q; if(!q) return; e.preventDefault(); renderSplit(q==='all'?S.people.map((_,i)=>i):S.couple.slice()); });
+$('#e-date').addEventListener('change',()=>{ if(!editExp) renderSplit(defaultSplit($('#e-date').value)); });
+$('#e-add').onclick=()=>{
+  const amt=parseFloat($('#e-amt').value); if(!(amt>0)){ toast('Enter an amount'); $('#e-amt').focus(); return; }
+  const split=[...$('#e-split').querySelectorAll('input:checked')].map(i=>+i.value);
+  if(!split.length){ toast('Pick at least one person to split with'); return; }
+  const o={date:$('#e-date').value,cat:$('#e-cat').value,amt,desc:$('#e-desc').value.trim()||catLabel($('#e-cat').value),by:+$('#e-by').value,split,mode:$('#e-mode').value};
+  commit(()=>{ if(editExp) Object.assign(S.expenses.find(x=>x.id===editExp),o); else S.expenses.push({id:Date.now().toString(36),...o}); });
+  toast(editExp?'Updated':'Added '+inr(amt)); editExp=null; fillExpForm(null); renderMoney();
+};
+$('#e-cancel').onclick=()=>{ editExp=null; fillExpForm(null); };
+$('#e-amt').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#e-add').click(); });
+
+function renderMoney(){
+  const B=S.budget, ex=S.expenses;
+  const spent=ex.reduce((s,e)=>s+e.amt,0), total=+B.total||B.cats.reduce((s,c)=>s+(+c.amt||0),0);
+  const left=total-spent, pct=total?Math.min(100,spent/total*100):0;
+  const daysLogged=new Set(ex.map(e=>e.date)).size||1;
+  const f=fuelEst(), fuelSpent=ex.filter(e=>e.cat==='fuel').reduce((s,e)=>s+e.amt,0);
+  const tripDays=S.days.length||1, perDayAllowed=total/tripDays;
+  $('#moneyStats').innerHTML=`
+    <div class="stat"><span>Total budget</span><b>${inr(total)}</b><small>${inr(perDayAllowed)} / day</small></div>
+    <div class="stat"><span>Spent</span><b>${inr(spent)}</b><div class="meter"><i class="${spent>total?'over':''}" style="width:${pct}%"></i></div><small>${pct.toFixed(0)}% used · ${ex.length} entries</small></div>
+    <div class="stat ${left>=0?'good':'bad'}"><span>${left>=0?'Remaining':'Over budget'}</span><b>${inr(Math.abs(left))}</b></div>
+    <div class="stat"><span>Avg per day</span><b>${inr(spent/daysLogged)}</b><small>${spent/daysLogged>perDayAllowed?'⚠️ above':'✓ within'} daily budget</small></div>
+    <div class="stat"><span>⛽ Fuel</span><b>${inr(fuelSpent)}</b><small>est. ${inr(f.cost)} for ${f.km} km</small></div>`;
+
+  const byCat=B.cats.map(c=>({...c,sp:ex.filter(e=>e.cat===c.id).reduce((s,e)=>s+e.amt,0)}));
+  const maxC=Math.max(1,...byCat.map(c=>Math.max(c.sp,+c.amt||0)));
+  $('#catBars').innerHTML=byCat.map(c=>`<div class="bar-row"><div>${esc(c.label)}</div>
+     <div class="track"><i class="${c.amt&&c.sp>c.amt?'over':''}" style="width:${c.sp/maxC*100}%"></i>${c.amt?`<span style="position:absolute;top:-2px;bottom:-2px;left:${c.amt/maxC*100}%;width:2px;background:var(--ink);opacity:.5"></span>`:''}</div>
+     <div class="v">${inr(c.sp)}${c.amt?' / '+inr(c.amt):''}</div></div>`).join('')+'<p class="hint">Dark tick = category budget.</p>';
+
+  const byDay=S.days.map(d=>{ const dt=parseD(d.date); return {l:dt.getDate()+' '+MON[dt.getMonth()]+' '+DOW[dt.getDay()], sp:ex.filter(e=>e.date===d.date).reduce((s,e)=>s+e.amt,0)}; });
+  const other=ex.filter(e=>!S.days.some(d=>d.date===e.date)).reduce((s,e)=>s+e.amt,0);
+  if(other) byDay.push({l:'Before/after',sp:other});
+  const maxD=Math.max(1,perDayAllowed,...byDay.map(d=>d.sp));
+  $('#dayBars').innerHTML=byDay.map(d=>`<div class="bar-row"><div>${d.l}</div><div class="track"><i class="${d.sp>perDayAllowed?'over':''}" style="width:${d.sp/maxD*100}%"></i></div><div class="v">${inr(d.sp)}</div></div>`).join('');
+
+  // settle up
+  const bal=S.people.map(()=>0), paid=S.people.map(()=>0), share=S.people.map(()=>0);
+  ex.forEach(e=>{ if(e.by<bal.length){ bal[e.by]+=e.amt; paid[e.by]+=e.amt; } const sp=e.split.filter(i=>i<bal.length); sp.forEach(i=>{ bal[i]-=e.amt/sp.length; share[i]+=e.amt/sp.length; }); });
+  const cred=bal.map((b,i)=>({i,b})).filter(x=>x.b>0.5).sort((a,b)=>b.b-a.b), debt=bal.map((b,i)=>({i,b:-b})).filter(x=>x.b>0.5).sort((a,b)=>b.b-a.b);
+  const tx=[]; let ci=0,di=0;
+  while(ci<cred.length&&di<debt.length){ const m=Math.min(cred[ci].b,debt[di].b); tx.push([debt[di].i,cred[ci].i,m]); cred[ci].b-=m; debt[di].b-=m; if(cred[ci].b<0.5)ci++; if(debt[di].b<0.5)di++; }
+  $('#settle').innerHTML=S.people.map((p,i)=>`<div class="settle-row"><span>${esc(p)}</span><span class="muted">paid ${inr(paid[i])} · share ${inr(share[i])}</span></div>`).join('')+
+    '<div style="margin-top:10px">'+(tx.length? tx.map(t=>`<div class="settle-row"><b>${esc(S.people[t[0]])} → ${esc(S.people[t[1]])}</b><b style="color:var(--sun)">${inr(t[2])}</b></div>`).join('') : '<p class="sub">All square ✓</p>')+'</div>';
+
+  $('#people').innerHTML=S.people.map((p,i)=>`<div class="person"><input data-p="${i}" value="${esc(p)}"><label style="margin:0;display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap"><input type="checkbox" style="width:auto" data-cp="${i}" ${S.couple.includes(i)?'checked':''}>us two</label></div>`).join('');
+
+  $('#budgetEdit').innerHTML=`<div class="bud-row"><b>Total trip budget</b><input type="number" data-bt value="${B.total}"></div>`+
+    B.cats.map((c,i)=>`<div class="bud-row"><input data-bl="${i}" value="${esc(c.label)}"><input type="number" data-ba="${i}" value="${c.amt}"></div>`).join('')+
+    `<div class="bud-row"><span class="muted">Sum of categories</span><b style="text-align:right">${inr(B.cats.reduce((s,c)=>s+(+c.amt||0),0))}</b></div>
+     <button class="btn sm" id="addCat">＋ Category</button> <button class="btn sm" id="fuelToBudget">⛽ Use fuel estimate (${inr(f.cost)})</button>`;
+
+  $('#e-filter').innerHTML=`<option value="all">All categories</option>`+B.cats.map(c=>`<option value="${c.id}" ${expFilter===c.id?'selected':''}>${esc(c.label)}</option>`).join('');
+  const rows=ex.filter(e=>expFilter==='all'||e.cat===expFilter).sort((a,b)=>b.date.localeCompare(a.date));
+  $('#expTbl').innerHTML='<thead><tr><th>Date</th><th>What</th><th>Category</th><th>Paid by</th><th>Split</th><th>Mode</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>'+
+    (rows.length? rows.map(e=>{ const dt=parseD(e.date); return `<tr><td>${dt.getDate()} ${MON[dt.getMonth()]}</td><td>${esc(e.desc)}${e.place?` <span class="muted">📍${esc(e.place)}</span>`:''}${e.slot!=null?` <span class="muted">· ${esc(S.cols[e.slot]||'')}</span>`:''}</td><td>${esc(catLabel(e.cat))}</td><td>${esc(S.people[e.by]||'?')}</td>
+      <td class="muted">${e.split.length===S.people.length?'Everyone':e.split.map(i=>esc(S.people[i]||'?')).join(', ')}</td><td>${esc(e.mode)}</td><td class="n">${inr(e.amt)}</td>
+      <td style="white-space:nowrap"><button class="btn sm" data-ee="${e.id}">✎</button><button class="btn sm ghost" data-ed="${e.id}">✕</button></td></tr>`; }).join('')
+     : '<tr><td colspan="8" class="muted" style="text-align:center;padding:20px">No expenses yet — add your first one above.</td></tr>')+
+    (rows.length?`<tr><td colspan="6"><b>Total</b></td><td class="n">${inr(rows.reduce((s,e)=>s+e.amt,0))}</td><td></td></tr>`:'')+'</tbody>';
+  renderPlan();
+}
+$('#v-money').addEventListener('change',e=>{ const t=e.target, d=t.dataset;
+  if(d.bt!==undefined){ commit(()=>S.budget.total=+t.value||0); renderMoney(); }
+  else if(d.ba!==undefined){ commit(()=>S.budget.cats[d.ba].amt=+t.value||0); renderMoney(); }
+  else if(d.bl!==undefined){ commit(()=>S.budget.cats[d.bl].label=t.value); renderMoney(); fillExpForm(null); }
+  else if(d.p!==undefined){ commit(()=>S.people[d.p]=t.value.trim()||('Person '+(+d.p+1))); renderMoney(); fillExpForm(null); }
+  else if(d.cp!==undefined){ commit(()=>{ const i=+d.cp; S.couple=t.checked?[...new Set([...S.couple,i])]:S.couple.filter(x=>x!==i); }); }
+  else if(t.id==='e-filter'){ expFilter=t.value; renderMoney(); }
+});
+$('#v-money').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='addCat'){ const l=prompt('Category name (you can start with an emoji)'); if(l) { commit(()=>S.budget.cats.push({id:'c'+Date.now().toString(36),label:l,amt:0})); renderMoney(); fillExpForm(null); } }
+  else if(b.id==='fuelToBudget'){ commit(()=>{ const c=S.budget.cats.find(c=>c.id==='fuel'); if(c) c.amt=Math.round(fuelEst().cost/100)*100; }); renderMoney(); toast('Fuel budget updated'); }
+  else if(b.id==='addPerson'){ commit(()=>S.people.push('Person '+(S.people.length+1))); renderMoney(); fillExpForm(null); }
+  else if(b.id==='csvBtn'){ const r=[['Date','What','Category','Paid by','Split','Mode','Amount']].concat(S.expenses.map(e=>[e.date,e.desc,catLabel(e.cat),S.people[e.by],e.split.map(i=>S.people[i]).join(' + '),e.mode,e.amt]));
+    download('goa-expenses.csv','\ufeff'+r.map(x=>x.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv'); }
+  else if(b.dataset.ed){ if(confirm('Delete this expense?')){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.ed)); renderMoney(); } }
+  else if(b.dataset.ee){ editExp=b.dataset.ee; fillExpForm(S.expenses.find(x=>x.id===editExp)); $('#e-amt').scrollIntoView({behavior:'smooth',block:'center'}); }
+});
+
+/* ---------- car ---------- */
+function gq(s){ s=s.replace(/\(.*?\)/g,'').trim(); return /pune/i.test(s)?s+', Maharashtra':s+', Goa'; }
+function renderCar(){
+  const c=S.car, f=fuelEst();
+  const planned=c.legs.reduce((s,l)=>s+(+l.km||0),0), actual=c.legs.reduce((s,l)=>s+(+l.actual||0),0);
+  const fuelSpent=S.expenses.filter(e=>e.cat==='fuel').reduce((s,e)=>s+e.amt,0);
+  const tollSpent=S.expenses.filter(e=>e.cat==='toll').reduce((s,e)=>s+e.amt,0);
+  $('#carStats').innerHTML=`
+    <div class="stat"><span>Planned distance</span><b>${planned.toLocaleString('en-IN')} km</b><small>${actual?actual.toLocaleString('en-IN')+' km actually logged':'log actual km below'}</small></div>
+    <div class="stat"><span>Fuel needed</span><b>${f.litres.toFixed(0)} L</b><small>@ ${c.mileage} km/L</small></div>
+    <div class="stat"><span>Fuel cost (est.)</span><b>${inr(f.cost)}</b><small>spent so far ${inr(fuelSpent)}</small></div>
+    <div class="stat"><span>Tolls (est.)</span><b>${inr(c.tollEst)}</b><small>spent so far ${inr(tollSpent)}</small></div>
+    <div class="stat"><span>Drive cost / person</span><b>${inr((f.cost+(+c.tollEst||0))/Math.max(1,S.couple.length))}</b><small>if split between you two</small></div>`;
+  $('#carForm').innerHTML=[['name','Car','text'],['fuel','Fuel type','text'],['mileage','Mileage (km/L)','number'],['price','Fuel price (₹/L)','number'],['tollEst','Toll estimate, round trip (₹)','number']]
+    .map(([k,l,t])=>`<div><label>${l}</label><input type="${t}" data-car="${k}" value="${esc(c[k])}"></div>`).join('');
+  $('#legTbl').innerHTML='<thead><tr><th>Date</th><th>From</th><th>To</th><th>Planned km</th><th>Actual km</th><th>Fuel ₹</th><th></th></tr></thead><tbody>'+
+    c.legs.map((l,i)=>`<tr><td><input type="date" data-leg="${i}" data-k="date" value="${esc(l.date)}"></td><td><input data-leg="${i}" data-k="from" value="${esc(l.from)}"></td><td><input data-leg="${i}" data-k="to" value="${esc(l.to)}"></td>
+      <td><input type="number" data-leg="${i}" data-k="km" value="${esc(l.km)}"></td><td><input type="number" data-leg="${i}" data-k="actual" value="${esc(l.actual)}" placeholder="—"></td>
+      <td class="n">${inr((+l.actual||+l.km||0)/(c.mileage||1)*c.price)}</td>
+      <td style="white-space:nowrap"><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(gq(l.from.split(/[·→]/)[0]))}&destination=${encodeURIComponent(gq(l.to.split(/[·→]/).pop()))}">Route ↗</a><button class="btn sm ghost" data-dl="${i}">✕</button></td></tr>`).join('')+
+    `<tr><td colspan="3"><b>Total</b></td><td class="n">${planned} km</td><td class="n">${actual||'—'}</td><td class="n">${inr(f.cost)}</td><td></td></tr></tbody>`;
+}
+$('#v-car').addEventListener('change',e=>{ const t=e.target;
+  if(t.dataset.car){ const k=t.dataset.car; commit(()=>S.car[k]=t.type==='number'?(+t.value||0):t.value); renderCar(); }
+  else if(t.dataset.leg!==undefined){ const k=t.dataset.k; commit(()=>S.car.legs[t.dataset.leg][k]=(k==='km')?(+t.value||0):t.value); renderCar(); }
+});
+$('#v-car').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='addLeg'){ commit(()=>S.car.legs.push({date:tripDefaultDate(),from:'',to:'',km:0,actual:''})); renderCar(); }
+  else if(b.dataset.dl!==undefined){ commit(()=>S.car.legs.splice(+b.dataset.dl,1)); renderCar(); }
+});
+
+/* ---------- notes & checks ---------- */
+function renderNotes(){
+  $('#notes').value=S.notes||'';
+  $('#checks').innerHTML=(S.checks||[]).map((c,i)=>`<div class="check ${c.d?'done':''}">
+    <input type="checkbox" data-ci="${i}" ${c.d?'checked':''}><input type="text" data-ct="${i}" value="${esc(c.t)}"><button class="btn sm ghost" data-cd="${i}">✕</button></div>`).join('');
+}
+$('#notes').addEventListener('change',e=>commit(()=>S.notes=e.target.value));
+$('#checks').addEventListener('change',e=>{ const t=e.target;
+  if(t.dataset.ci!==undefined){ commit(()=>S.checks[t.dataset.ci].d=t.checked); renderNotes(); }
+  if(t.dataset.ct!==undefined){ commit(()=>S.checks[t.dataset.ct].t=t.value); } });
+$('#checks').addEventListener('click',e=>{ const b=e.target.closest('[data-cd]'); if(b){ commit(()=>S.checks.splice(+b.dataset.cd,1)); renderNotes(); } });
+$('#addCheckBtn').onclick=()=>{ commit(()=>{ S.checks=S.checks||[]; S.checks.push({t:'',d:false}); }); renderNotes(); const ins=$('#checks').querySelectorAll('input[type=text]'); ins[ins.length-1].focus(); };
+
+/* ---------- tabs, modals, tools ---------- */
+function show(v){ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v)); document.querySelectorAll('section.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); window.scrollTo({top:0,behavior:'smooth'}); }
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>show(t.dataset.v));
+function open(sel){ $(sel).classList.add('on'); }
+function close(){ document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on')); }
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m||e.target.hasAttribute('data-close')) close(); }));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+
+$('#undoBtn').onclick=()=>{ if(!history.length){ toast('Nothing to undo'); return; } S=JSON.parse(history.pop()); save(); renderAll(); toast('Undone'); };
+$('#themeBtn').onclick=()=>{ const r=document.documentElement; const dark = r.dataset.theme ? r.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; r.dataset.theme=dark?'light':'dark'; try{localStorage.setItem(KEY+'.theme',r.dataset.theme);}catch(e){} };
+try{ const th=localStorage.getItem(KEY+'.theme'); if(th) document.documentElement.dataset.theme=th; }catch(e){}
+
+function download(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+$('#exportBtn').onclick=()=>download('goa-trip.json',JSON.stringify(S,null,1),'application/json');
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const d=JSON.parse(rd.result); if(!d.days||!d.cols) throw 0; commit(()=>S=d); renderAll(); toast('Imported'); }catch(err){ toast('Not a valid trip file'); } }; rd.readAsText(f); e.target.value=''; };
+$('#saveHtmlBtn').onclick=()=>{
+  S.savedAt=Date.now(); save();
+  const json=JSON.stringify(S,null,1).replace(/</g,'\\u003c');
+  const html=PRISTINE.replace(/(<script type="application\/json" id="seed">)[\s\S]*?(<\/script>)/, (m,a,b)=>a+'\n'+json+'\n'+b);
+  download('index.html',html,'text/html'); toast('index.html downloaded — commit it to GitHub');
+};
+
+/* ---------- history & backups ---------- */
+let hxState=null;
+function stamp(){ return new Date().toISOString().slice(0,16).replace('T','_').replace(':',''); }
+function renderHistory(){
+  const TD=window.TripData;
+  $('#hxExport').innerHTML = TD ? Object.keys(TD.tables(S)).map(n=>`<button class="btn" data-hxcsv="${esc(n)}">📄 ${esc(n)}.csv</button>`).join('')+'<button class="btn" id="hxJsonNow">🗂 trip.json</button>' : '<p class="muted">Export helpers not loaded.</p>';
+  const lv=(window.TripSync&&TripSync.localVersions())||[];
+  $('#hxLocal').innerHTML = lv.length ? lv.map((v,i)=>`<div class="hx-row"><div><b>${new Date(v.t).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}</b><small>${esc(v.by)} · ${v.bills||0} bills · ${inr(v.total)}</small></div><button class="btn sm" data-hxlocal="${i}">Preview</button></div>`).join('')
+    : '<p class="muted">No restore points yet — they are created automatically as you edit (at most every 10 minutes).</p>';
+  loadCloud();
+}
+function loadCloud(){
+  const box=$('#hxCloud');
+  if(!window.TripSync||!TripSync.configured()){ box.innerHTML='<p class="muted">Cloud backup isn’t connected on this phone (see <b>docs/SETUP.md</b>, or tap the sync pill at the top). Restore points on this phone still work.</p>'; return; }
+  box.innerHTML='<p class="muted">Loading snapshots…</p>';
+  TripSync.api('snapshots').then(r=>{
+    if(!r.ok) throw new Error(r.error);
+    box.innerHTML = r.list.length ? r.list.map(s=>{ const m=s.meta||{}; return `<div class="hx-row"><div><b>${esc(s.name)}</b><small>${m.bills!=null?m.bills+' bills · '+inr(m.total):''}${m.lastEditBy?' · last edit by '+esc(m.lastEditBy):''}${m.by?' · '+esc(m.by):''}</small></div><button class="btn sm" data-hxcloud="${esc(s.id)}" data-hxname="${esc(s.name)}">Preview</button></div>`; }).join('')
+      : '<p class="muted">No snapshots yet. The first one is saved within 2 hours of the first edit — or press 📸 Snapshot now.</p>';
+  }).catch(e=>{ box.innerHTML='<p class="muted">⚠️ Could not load snapshots: '+esc(e.message||e)+'</p>'; });
+}
+function previewVersion(state,label){
+  hxState=state; const TD=window.TripData, a=TD.summary(state), b=TD.summary(S);
+  $('#hx-title').textContent=label;
+  $('#hx-stats').innerHTML=`<div class="stat"><span>Bills</span><b>${a.bills}</b></div><div class="stat"><span>Spent</span><b>${inr(a.total)}</b></div><div class="stat"><span>Places</span><b>${a.places}</b></div><div class="stat"><span>Days</span><b>${a.days}</b></div>`;
+  const ids=new Set((S.expenses||[]).map(e=>e.id)), old=new Set((state.expenses||[]).map(e=>e.id));
+  const onlyOld=(state.expenses||[]).filter(e=>!ids.has(e.id)).length, onlyNow=(S.expenses||[]).filter(e=>!old.has(e.id)).length;
+  $('#hx-diff').innerHTML=`Compared with now: ${a.bills-b.bills>=0?'+':''}${a.bills-b.bills} bills, ${a.total-b.total>=0?'+':'−'}${inr(Math.abs(a.total-b.total))}. `+
+    (onlyNow?`<b>${onlyNow} bill(s) added since then would disappear</b> if you restore. `:'')+(onlyOld?`${onlyOld} bill(s) deleted since then would come back.`:'');
+  const rows=(state.expenses||[]).slice().sort((x,y)=>String(y.date).localeCompare(String(x.date)));
+  $('#hx-bills').innerHTML='<thead><tr><th>Date</th><th>Where / what</th><th>Paid by</th><th style="text-align:right">₹</th></tr></thead><tbody>'+
+    (rows.length?rows.map(e=>`<tr><td>${esc(e.date)}</td><td>${esc(e.desc)}${e.place?' <span class="muted">📍'+esc(e.place)+'</span>':''}</td><td>${esc((state.people||[])[e.by]||'?')}</td><td class="n">${inr(e.amt)}</td></tr>`).join(''):'<tr><td colspan="4" class="muted">No bills in this version.</td></tr>')+'</tbody>';
+  open('#hxModal');
+}
+$('#v-history').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!window.TripData) return; const d=b.dataset;
+  if(d.hxcsv){ download('goa-trip_'+d.hxcsv.replace(/\s+/g,'-')+'_'+stamp()+'.csv','\ufeff'+TripData.toCSV(TripData.tables(S)[d.hxcsv]),'text/csv'); }
+  else if(b.id==='hxJsonNow'){ download('goa-trip_'+stamp()+'.json',JSON.stringify(S,null,1),'application/json'); }
+  else if(b.id==='hxRefresh'){ loadCloud(); }
+  else if(b.id==='hxLocalNow'){ TripSync.saveLocalVersion(true); renderHistory(); toast('Restore point saved on this phone'); }
+  else if(b.id==='hxSnapNow'){ if(!TripSync.configured()){ toast('Cloud backup not connected'); return; } b.disabled=true; b.textContent='Saving…';
+    TripSync.api('snapshotNow').then(r=>{ toast(r.ok?'📸 Snapshot saved to Google Drive':'⚠️ '+r.error); loadCloud(); }).catch(err=>toast('⚠️ '+err.message)).then(()=>{ b.disabled=false; b.textContent='📸 Snapshot now'; }); }
+  else if(d.hxlocal!=null){ const v=TripSync.localVersions()[+d.hxlocal]; if(v) previewVersion(v.state,'📱 '+new Date(v.t).toLocaleString('en-IN')+' · '+v.by); }
+  else if(d.hxcloud){ b.textContent='Loading…'; TripSync.api('snapshot',{id:d.hxcloud}).then(r=>{ b.textContent='Preview'; if(!r.ok) throw new Error(r.error); previewVersion(r.state,'☁️ '+d.hxname); }).catch(err=>{ b.textContent='Preview'; toast('⚠️ '+err.message); }); }
+});
+$('#hx-csv').onclick=()=>{ if(hxState) download('goa-trip_bills_'+stamp()+'.csv','\ufeff'+TripData.toCSV(TripData.tables(hxState).Expenses),'text/csv'); };
+$('#hx-json').onclick=()=>{ if(hxState) download('goa-trip_version_'+stamp()+'.json',JSON.stringify(hxState,null,1),'application/json'); };
+$('#hx-restore').onclick=()=>{ if(!hxState) return; if(!confirm('Restore this version for everyone? (Your current version is kept as a restore point, so you can undo this.)')) return;
+  if(window.TripSync) TripSync.saveLocalVersion(true);
+  commit(()=>{ S=JSON.parse(JSON.stringify(hxState)); }); migrate(); close(); renderAll(); renderHistory(); toast('↺ Version restored'); };
+
+function renderAll(){
+  const parts=[renderHeader,renderPlan,renderStays,renderChips,renderFood,renderMoney,renderCar,renderNotes,()=>{ if(!editExp) fillExpForm(null); }];
+  let failed=0; parts.forEach(fn=>{ try{ fn(); }catch(err){ failed++; console.error(err); } });
+  if(failed && !$('#planTbl tbody tr')){ // the timetable must never be blank
+    $('#planTbl').innerHTML='<tbody><tr><td style="padding:16px">⚠️ The plan could not be shown. <button class="btn primary" id="fixPlanBtn">Restore the original plan</button> <span class="muted">(your current data is kept in 🕘 History)</span></td></tr></tbody>';
+    $('#fixPlanBtn').onclick=()=>{ if(window.TripSync) TripSync.saveLocalVersion(true); commit(()=>{ S=JSON.parse(JSON.stringify(seed)); }); migrate(); renderAll(); toast('Original plan restored'); };
+  }
+}
+renderAll();
+if(window.TripSync) TripSync.start({
+  get:()=>S,
+  set:(ns)=>{ if(!validState(ns)){ console.warn('Ignored invalid shared data'); toast('⚠️ Shared data looked broken — kept your plan'); return; } S=ns; migrate(); history.length=0; lsSet(S); renderAll(); if($('#v-history').classList.contains('on')) renderHistory(); },
+  people:()=>S.people, toast
+});
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ if(t.dataset.v==='money') renderMoney(); if(t.dataset.v==='car') renderCar(); if(t.dataset.v==='history') renderHistory(); }));
+setInterval(()=>{ if(!document.activeElement||!document.activeElement.closest('td.cell')) renderPlan(); }, 5*60*1000);
+})();
+</script>
+</body>
+</html>

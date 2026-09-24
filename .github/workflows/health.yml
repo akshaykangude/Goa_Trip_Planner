@@ -1,0 +1,74 @@
+name: 🩺 Site health check
+
+# Checks the live website and the shared backend every 3 hours.
+# If something is down it opens a GitHub issue (you get a phone notification
+# from the GitHub app); when it's healthy again the issue is closed automatically.
+
+on:
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check website + backend
+        id: check
+        env:
+          PAGES_URL: ${{ vars.PAGES_URL }}
+          TRIP_API_URL: ${{ secrets.TRIP_API_URL }}
+        run: |
+          set -u
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY##*/}"
+          site="${PAGES_URL:-https://${owner}.github.io/${repo}/}"
+          site="${site%/}/"
+          problems=""
+          code=$(curl -s -L -o page.html -w '%{http_code}' "${site}index.html" || echo 000)
+          if [ "$code" != "200" ] || ! grep -q 'id="planTbl"' page.html; then problems="${problems}- Planner page ${site} → HTTP ${code}\n"; fi
+          code=$(curl -s -L -o explore.html -w '%{http_code}' "${site}explore.html" || echo 000)
+          if [ "$code" != "200" ] || ! grep -q 'id="qForm"' explore.html; then problems="${problems}- Explore page → HTTP ${code}\n"; fi
+          for f in assets/config.js assets/sync.js assets/tripdata.js assets/guide-data.js; do
+            code=$(curl -s -L -o /dev/null -w '%{http_code}' "${site}${f}" || echo 000)
+            [ "$code" = "200" ] || problems="${problems}- ${f} → HTTP ${code}\n"
+          done
+          if [ -n "${TRIP_API_URL}" ]; then
+            if ! curl -s -L --max-time 60 "${TRIP_API_URL}?action=ping" | grep -q '"ok":true'; then
+              problems="${problems}- Backend (Apps Script) did not answer the ping\n"
+            fi
+          else
+            echo "TRIP_API_URL secret not set – skipping backend check"
+          fi
+          echo "site=${site}" >> "$GITHUB_OUTPUT"
+          if [ -n "$problems" ]; then
+            printf "%b" "$problems" | tee problems.txt
+            echo "down=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ All good"
+            echo "down=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open / update an issue when down
+        if: steps.check.outputs.down == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh label create site-down --color D93F0B --description "Automatic health check" --force >/dev/null 2>&1 || true
+          body="$(printf '🚨 The trip site check failed at %s IST\n\n%s\n\nSite: %s\nRun: %s/%s/actions/runs/%s' "$(TZ=Asia/Kolkata date '+%d %b %H:%M')" "$(cat problems.txt)" "${{ steps.check.outputs.site }}" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          num=$(gh issue list --label site-down --state open --json number -q '.[0].number')
+          if [ -n "$num" ]; then gh issue comment "$num" --body "$body"; else gh issue create --title "🚨 Trip site problem" --label site-down --body "$body"; fi
+
+      - name: Close the issue when healthy again
+        if: steps.check.outputs.down == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for n in $(gh issue list --label site-down --state open --json number -q '.[].number'); do
+            gh issue close "$n" --comment "✅ Healthy again at $(TZ=Asia/Kolkata date '+%d %b %H:%M') IST"
+          done

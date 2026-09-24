@@ -1,0 +1,27 @@
+name: ✅ Tests
+
+# Runs on every push: backend logic, merge logic, backup script, and a full
+# two-phone browser test (Chromium) of the planner + Explore pages.
+
+on:
+  push:
+    paths-ignore: ["backups/**", "**.md"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet openpyxl
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
