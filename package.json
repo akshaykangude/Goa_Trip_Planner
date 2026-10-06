@@ -5,10 +5,11 @@
   "description": "Shared, phone-friendly trip planner with bills, places, backups and a 'should I go?' review search. Hosted on GitHub Pages, synced through Google Apps Script.",
   "type": "module",
   "scripts": {
-    "test": "node tests/merge.test.mjs && node tests/backend.test.mjs && node tests/backup.test.mjs && node tests/smoke.mjs",
+    "test": "node tests/merge.test.mjs && node tests/backend.test.mjs && node tests/backup.test.mjs && node tests/smoke.mjs && node tests/multitab.test.mjs && node tests/claudepage.test.mjs",
     "test:quick": "node tests/merge.test.mjs && node tests/backend.test.mjs",
     "sync-backend": "cp assets/tripdata.js backend/TripData.gs",
-    "serve": "python3 -m http.server 8080"
+    "serve": "python3 -m http.server 8080",
+    "build-artifact": "python3 scripts/build-artifact.py"
   },
   "devDependencies": {
     "playwright": "^1.47.0"

@@ -173,7 +173,8 @@ let S=null, type='all', area='all';
 
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+let baseStr=null;
+function lsSet(k,v){ const txt=JSON.stringify(v); try{ localStorage.setItem(k,txt); if(k===KEY) baseStr=txt; return true; }catch(e){ toast('⚠️ Phone storage is full — could not save'); return false; } }
 try{ const th=localStorage.getItem(KEY+'.theme'); if(th) document.documentElement.dataset.theme=th; }catch(e){}
 function parseD(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d); }
 function dayLbl(d){ const dt=parseD(d.date); return dt.getDate()+' '+MON[dt.getMonth()]+' '+DOW[dt.getDay()]; }
@@ -186,9 +187,13 @@ function ring(score,big){ const t=tone(score); return `<div class="ring t-${t}" 
 function stars(n){ n=Math.round(+n||0); return '★'.repeat(n)+'☆'.repeat(Math.max(0,5-n)); }
 
 /* ---------- state (shared with the planner) ---------- */
-function save(){ S.savedAt=Date.now(); lsSet(KEY,S); if(window.TripSync) TripSync.dirty(); }
+function save(){
+  if(window.TripSync&&TripSync.mergeFromStorage){ const r=TripSync.mergeFromStorage(KEY,S,baseStr); if(r.merged&&r.state&&Array.isArray(r.state.days)) S=r.state; }
+  S.savedAt=Date.now(); lsSet(KEY,S); if(window.TripSync) TripSync.dirty(); }
+window.addEventListener('storage',e=>{ if(e.key!==KEY||!e.newValue||e.newValue===baseStr) return;
+  try{ const ns=JSON.parse(e.newValue); if(ns&&Array.isArray(ns.days)){ S=ns; S.places=S.places||[]; S.expenses=S.expenses||[]; baseStr=e.newValue; renderDays(); } }catch(_){} });
 async function loadState(){
-  S=lsGet(KEY);
+  S=lsGet(KEY); try{ baseStr=localStorage.getItem(KEY); }catch(e){}
   if(!S){ // first visit on this phone → take the starting plan from the planner page
     try{ const html=await (await fetch('index.html',{cache:'no-store'})).text();
       const m=html.match(/<script type="application\/json" id="seed">([\s\S]*?)<\/script>/); if(m) S=JSON.parse(m[1]); }catch(e){}

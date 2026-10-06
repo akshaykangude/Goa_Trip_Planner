@@ -1,8 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" id="vp" content="width=device-width, initial-scale=1">
+<title>Goa Trip Planner</title>
 <script>
 /* PC view on phones: phones get the same layout as a laptop (pinch to zoom).
    The "📱 Phone view / 🖥 PC view" button switches; the choice is remembered on that phone. */
@@ -17,7 +13,7 @@
 })();
 </script>
 <style>html{-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
-<title>Goa Trip Planner (offline)</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -281,7 +277,7 @@ table.plan td.cell.hl .c{background:transparent}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Goa Trip">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B4%3C/text%3E%3C/svg%3E">
-<script>/* inlined assets/config.js */
+<script>/* assets/config.js */
 /*
  * ─────────────────────────────────────────────────────────────
  *  TRIP CONFIG — the only file you need to edit after setup.
@@ -302,7 +298,7 @@ window.TRIP_CONFIG = {
 };
 
 </script>
-<script>/* inlined assets/tripdata.js */
+<script>/* assets/tripdata.js */
 /*
  * tripdata.js — pure data helpers shared by:
  *   • the web pages (index.html, explore.html)
@@ -552,7 +548,7 @@ var TripData = (function () {
 if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
 
 </script>
-<script>/* inlined assets/sync.js */
+<script>/* assets/sync.js */
 /*
  * sync.js — keeps every phone in the group on the same trip data.
  *
@@ -1092,8 +1088,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
 })();
 
 </script>
-</head>
-<body>
+
+
 
 <header class="hero">
   <div class="hero-in">
@@ -1115,7 +1111,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
       <button class="tab" data-v="car">🚗 Car &amp; Route</button>
       <button class="tab" data-v="notes">📝 Notes &amp; Packing</button>
       <button class="tab" data-v="history">🕘 History</button>
-      
+      <a class="tab-link" href="https://akshaykangude.github.io/Goa_Trip_Planner/explore.html" target="_blank" rel="noopener">🔎 Explore &amp; Reviews</a>
     </div>
     <div class="tools">
       <span id="syncSlot"></span>
@@ -1390,7 +1386,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
     <div style="grid-column:1/-1"><label>Note</label><input id="cm-note" placeholder="Booking ref, entry fee, who's driving…"></div>
   </div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="cm-hl" style="width:auto"> ⭐ Highlight this slot</label>
-  <div style="margin-top:8px"><a class="btn sm" id="cm-review" href="explore.html" target="_self">🔎 Reviews &amp; better options nearby</a></div>
+  <div style="margin-top:8px"><a class="btn sm" id="cm-review" href="https://akshaykangude.github.io/Goa_Trip_Planner/explore.html" target="_blank" rel="noopener" target="_self">🔎 Reviews &amp; better options nearby</a></div>
   <div class="mapwrap" id="cm-mapwrap"><iframe id="cm-map" title="Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a id="cm-maplink" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>
   <h4 style="margin:16px 0 6px">🧾 Bills in this slot <span class="muted" id="cm-total"></span></h4>
   <div id="cm-exp"></div>
@@ -2252,7 +2248,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
 
 <script>
 (function(){
-const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const PRISTINE = '\n' + document.documentElement.outerHTML;
 const KEY = 'goaTripPlanner.v1';
 const $ = s => document.querySelector(s);
 const seed = JSON.parse(document.getElementById('seed').textContent);
@@ -3062,5 +3058,3 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ if
 setInterval(()=>{ if(!document.activeElement||!document.activeElement.closest('td.cell')) renderPlan(); }, 5*60*1000);
 })();
 </script>
-</body>
-</html>

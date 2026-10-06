@@ -9,7 +9,8 @@
 (function(){
   var mode='pc'; try{ mode=localStorage.getItem('goaTripPlanner.v1.view')||'pc'; }catch(e){}
   var small=Math.min(screen.width,screen.height)<900;
-  if(mode==='pc' && small){ document.getElementById('vp').setAttribute('content','width=1280'); document.documentElement.classList.add('pcview'); }
+  if(mode==='pc' && small){ document.querySelectorAll('meta[name="viewport"]').forEach(function(m){ m.setAttribute('content','width=1280'); }); document.documentElement.classList.add('pcview'); }
+  if(window.claude && typeof window.claude.use==='function') document.documentElement.classList.add('inclaude');
   window.toggleView=function(){ var next=document.documentElement.classList.contains('pcview')?'phone':'pc';
     try{ localStorage.setItem('goaTripPlanner.v1.view',next); }catch(e){} location.reload(); };
   window.isSmallScreen=small;
@@ -239,6 +240,7 @@ details.pd{border:1px solid var(--line);border-radius:12px;padding:8px 12px;marg
 details.pd summary{cursor:pointer;font-weight:600;font-size:14px;display:flex;justify-content:space-between;gap:8px}
 details.pd summary::-webkit-details-marker{display:none}
 .over-t{color:#d64545!important}
+html.inclaude #printBtn,html.inclaude #saveHtmlBtn,html.inclaude #cm-map{display:none!important}
 a.tab-link{border:1px solid var(--sea);background:var(--sea);color:#fff;padding:8px 14px;border-radius:999px;font:600 14px Inter,system-ui,sans-serif;text-decoration:none;white-space:nowrap}
 td.cell:has(.billform) .ctools{display:none}
 .billform{display:grid!important;grid-template-columns:1fr;gap:3px;width:100%}
@@ -313,10 +315,10 @@ table.plan td.cell.hl .c{background:transparent}
   b.textContent=document.documentElement.classList.contains('pcview')?'📱 Phone view':'🖥 PC view'; })();</script>
       <button class="btn" id="undoBtn" title="Undo last change">↶ Undo</button>
       <button class="btn" id="themeBtn">🌓</button>
-      <button class="btn" id="exportBtn">⬇ Export JSON</button>
-      <button class="btn" id="importBtn">⬆ Import</button>
+      <button class="btn" id="exportBtn">📤 Send my bills</button>
+      <button class="btn" id="importBtn">📥 Add bills from a file</button>
       <button class="btn sun" id="saveHtmlBtn" title="Download a single index.html with the current plan baked in (works without internet)">💾 Offline copy</button>
-      <input type="file" id="importFile" accept=".json" hidden>
+      <input type="file" id="importFile" accept=".json,application/json" multiple hidden>
     </div>
   </div>
 
@@ -502,6 +504,17 @@ table.plan td.cell.hl .c{background:transparent}
   <section class="view" id="v-history">
     <h2>History &amp; backups</h2>
     <p class="sub">Nothing is ever lost. Cloud snapshots are saved automatically every 2 hours (CSV + Excel in Google Drive, plus the <code>backups/</code> folder on GitHub). This phone also keeps its own restore points. Restoring never deletes anything — the old version is simply saved as the newest one, so you can switch back again.</p>
+    <div class="panel" id="hxRescue">
+      <h3>🛟 Recover lost bills</h3>
+      <p class="sub" style="margin:0 0 8px">Scans every restore point and the bill vault saved on <b>this phone</b> for bills that are no longer in the plan. Tick the ones you want back.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="rescueScan">🔍 Scan this phone</button><button class="btn" id="rescueAdd" hidden>➕ Add selected back</button></div>
+      <div id="rescueList" style="margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <h3>👥 Put everyone's bills together</h3>
+      <p class="sub" style="margin:0 0 8px">Each phone keeps its own bills until sharing is switched on. To combine them: everyone taps <b>📤 Send my bills</b> and sends the file to one person on WhatsApp. That person taps <b>📥 Add bills from a file</b> and picks all the files. Bills are added, never replaced, and duplicates are skipped.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sun" onclick="document.getElementById('exportBtn').click()">📤 Send my bills</button><button class="btn primary" onclick="document.getElementById('importFile').click()">📥 Add bills from a file</button></div>
+    </div>
     <div class="panel"><h3>⬇ Download the current data</h3><div id="hxExport" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
@@ -595,6 +608,13 @@ table.plan td.cell.hl .c{background:transparent}
     <button class="btn" id="hx-json">🗂 JSON</button>
     <button class="btn sun" id="hx-restore">↺ Restore this version</button>
   </div>
+</div></div>
+
+<div class="modal" id="askModal"><div class="dlg">
+  <h3 id="ask-title">Are you sure?</h3>
+  <p class="sub" id="ask-msg" style="font-size:15px;color:var(--ink)"></p>
+  <input id="ask-input" hidden>
+  <div class="row"><button class="btn" id="ask-no">Cancel</button><button class="btn primary" id="ask-yes">OK</button></div>
 </div></div>
 
 <div class="modal" id="dayModal"><div class="dlg">
@@ -1431,7 +1451,10 @@ const seed = JSON.parse(document.getElementById('seed').textContent);
 let S, history = [];
 
 function lsGet(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
-function lsSet(v){ try{ localStorage.setItem(KEY, JSON.stringify(v)); }catch(e){} }
+let baseStr=null; // exactly what this tab last read from / wrote to phone storage
+function lsSet(v){ const txt=JSON.stringify(v);
+  try{ localStorage.setItem(KEY, txt); baseStr=txt; return true; }
+  catch(e){ try{ toast('⚠️ Phone storage is full — could not save. Open 🕘 History and download a backup.'); }catch(_){} return false; } }
 const local = lsGet();
 function validState(s){ return !!(s && Array.isArray(s.cols) && s.cols.length && Array.isArray(s.days) && s.days.length &&
   s.days.every(d=>d && typeof d.date==='string' && Array.isArray(d.cells))); }
@@ -1441,11 +1464,42 @@ if(local && !validState(local)){ try{ localStorage.setItem(KEY+'.broken', JSON.s
 function migrate(){ Object.keys(seed).forEach(k=>{ if(S[k]===undefined){ S[k]=JSON.parse(JSON.stringify(seed[k]));
   if(k==='places') S.days.forEach(d=>{ const sd=seed.days.find(x=>x.date===d.date); if(sd&&sd.place&&!d.place) d.place=JSON.parse(JSON.stringify(sd.place)); }); } }); }
 migrate();
+try{ baseStr=localStorage.getItem(KEY); }catch(e){}
+if(window.TripSync&&TripSync.vaultAdd) TripSync.vaultAdd(S);
+try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+/* in-page "Are you sure?" — replaces browser pop-ups, which Claude pages block */
+function ask(msg, okLabel, withInput){
+  return new Promise(res=>{
+    const m=$('#askModal'), inp=$('#ask-input');
+    $('#ask-msg').textContent=msg; $('#ask-yes').textContent=okLabel||'OK';
+    $('#ask-title').textContent=withInput?msg:'Are you sure?'; if(withInput) $('#ask-msg').textContent='';
+    inp.hidden=!withInput; inp.value=''; m.classList.add('on'); if(withInput) setTimeout(()=>inp.focus(),50);
+    const done=v=>{ m.classList.remove('on'); $('#ask-yes').onclick=$('#ask-no').onclick=null; inp.onkeydown=null; res(v); };
+    $('#ask-yes').onclick=()=>done(withInput?(inp.value.trim()||null):true);
+    $('#ask-no').onclick=()=>done(withInput?null:false);
+    inp.onkeydown=e=>{ if(e.key==='Enter') $('#ask-yes').click(); };
+  });
+}
+window.TripAsk=ask;
 function snapshot(){ history.push(JSON.stringify(S)); if(history.length>50) history.shift(); }
 function meIdx(){ const u=window.TripSync&&TripSync.user(); const i=(S.people||[]).indexOf(u); return i<0?0:i; }
 function stampBills(){ const u=(window.TripSync&&TripSync.user())||''; const now=new Date().toISOString();
   (S.expenses||[]).forEach(e=>{ if(!e.addedAt){ e.addedAt=now; if(u&&!e.addedBy) e.addedBy=u; } }); }
-function save(){ S.savedAt = Date.now(); stampBills(); lsSet(S); if(window.TripSync) TripSync.dirty(); }
+function save(){
+  // another tab (or the Explore page) may have saved since this tab loaded → merge, never overwrite
+  let merged=false;
+  if(window.TripSync&&TripSync.mergeFromStorage){ const r=TripSync.mergeFromStorage(KEY,S,baseStr); if(r.merged&&validState(r.state)){ S=r.state; migrate(); merged=true; } }
+  S.savedAt = Date.now(); stampBills(); lsSet(S); if(window.TripSync) TripSync.dirty();
+  if(merged){ try{ renderAll(); }catch(e){} }
+}
+// keep every open tab of the planner up to date
+window.addEventListener('storage',e=>{
+  if(e.key!==KEY||!e.newValue||e.newValue===baseStr) return;
+  let ns; try{ ns=JSON.parse(e.newValue); }catch(_){ return; }
+  if(!validState(ns)) return;
+  const a=document.activeElement; if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return; // merged on next save instead
+  S=ns; migrate(); baseStr=e.newValue; history.length=0; try{ renderAll(); }catch(_){}
+});
 function commit(fn){ snapshot(); fn(); save(); }
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),1800); }
 function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -1611,8 +1665,8 @@ $('#placesPanel').addEventListener('change',e=>{ const t=e.target, d=t.dataset;
 $('#placesPanel').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
   if(d.open){ const [r,c]=d.open.split(',').map(Number); openCell(r,c); }
   else if(d.pplan!==undefined){ const p=S.places[d.pplan]; $('#pl-name').value=p.name; $('#pl-type').value=p.type; $('#pl-note').value=p.note||''; $('#pl-day').focus(); $('#pl-name').scrollIntoView({behavior:'smooth',block:'center'}); toast('Pick a day & slot, then Add'); }
-  else if(d.pdel!==undefined){ const p=S.places[d.pdel]; if(!confirm('Remove '+p.name+' (and its 📍 tags in the plan)?')) return;
-    commit(()=>{ S.days.forEach(x=>Object.keys(x.place||{}).forEach(c=>{ if((x.place[c]||'').toLowerCase()===p.name.toLowerCase()) delete x.place[c]; })); S.places.splice(+d.pdel,1); }); renderPlan(); }
+  else if(d.pdel!==undefined){ const p=S.places[d.pdel]; ask('Remove '+p.name+' and its 📍 tags in the plan?','Remove').then(ok=>{ if(!ok) return;
+    commit(()=>{ S.days.forEach(x=>Object.keys(x.place||{}).forEach(c=>{ if((x.place[c]||'').toLowerCase()===p.name.toLowerCase()) delete x.place[c]; })); S.places.splice(+d.pdel,1); }); renderPlan(); }); }
 });
 
 /* slot details modal */
@@ -1768,7 +1822,7 @@ function renderPlanMoney(){
     r.list.slice().sort((a,b)=>(a.slot??99)-(b.slot??99)).map(e=>`<div class="xrow"><span><span class="muted">${e.slot!=null?esc(S.cols[e.slot]):'Day'}</span> · ${esc(e.desc)}${e.place?` <a href="${mapsUrl(e.place)}" target="_blank" rel="noopener" class="muted">📍${esc(e.place)}</a>`:''} <span class="muted">· ${esc(catLabel(e.cat))} · ${esc(S.people[e.by]||'?')} paid · split ${e.split.length===S.people.length?'all':e.split.length}${e.addedBy?' · added by '+esc(e.addedBy):''}</span></span><span><span class="n">${inr(e.amt)}</span> <button class="btn sm ghost" data-pmdel="${e.id}">✕</button></span></div>`).join('')+'</details>').join('')
     || '<p class="muted">No spends yet. Add one above, or tap ⋯ on any slot to log money right where it happened.</p>';
 }
-$('#pmDays').addEventListener('click',e=>{ const b=e.target.closest('[data-pmdel]'); if(!b) return; if(confirm('Delete this spend?')){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.pmdel)); renderMoney(); } });
+$('#pmDays').addEventListener('click',e=>{ const b=e.target.closest('[data-pmdel]'); if(!b) return; ask('Delete this spend?','Delete').then(ok=>{ if(ok){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.pmdel)); renderMoney(); } }); });
 $('#pm-add').onclick=()=>{
   const amt=parseFloat($('#pm-amt').value); if(!(amt>0)){ toast('Enter an amount'); $('#pm-amt').focus(); return; }
   const d=S.days[+$('#pm-day').value], by=+$('#pm-by').value, sv=$('#pm-slot').value, slot=sv===''?null:cellStart(d,+sv);
@@ -1808,7 +1862,7 @@ tbl.addEventListener('keydown',e=>{ if(e.target.closest('.c') && e.key==='Enter'
 tbl.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.star){ const [r,c]=b.dataset.star.split(',').map(Number); commit(()=>{ let t=S.days[r].cells[c]; S.days[r].cells[c]= /\*\*/.test(t)? t.replace(/\*\*/g,'') : (t.match(/^(\S+\s)(.*)$/u)? t.replace(/^(\S+\s)(.*)$/u,'$1**$2**') : '**'+t+'**'); }); renderPlan(); }
-  else if(b.dataset.delDay!==undefined){ const r=+b.dataset.delDay; if(confirm('Delete '+S.days[r].date+'?')){ commit(()=>S.days.splice(r,1)); renderAll(); } }
+  else if(b.dataset.delDay!==undefined){ const r=+b.dataset.delDay; ask('Delete '+S.days[r].date+' from the plan?','Delete day').then(ok=>{ if(ok){ commit(()=>S.days.splice(r,1)); renderAll(); } }); }
   else if(b.dataset.up!==undefined){ const r=+b.dataset.up; if(r>0){ commit(()=>{ const [x]=S.days.splice(r,1); S.days.splice(r-1,0,x); }); renderPlan(); } }
   else if(b.dataset.editDay!==undefined){ openDay(+b.dataset.editDay); }
   else if(b.hasAttribute('data-go-stays')){ show('stays'); }
@@ -1825,7 +1879,7 @@ $('#addDayBtn').onclick=()=>{
   });
   renderAll(); toast('Day added');
 };
-$('#resetBtn').onclick=()=>{ if(confirm('Reset everything to the original plan? (You can Undo)')){ commit(()=>{ S=JSON.parse(JSON.stringify(seed)); }); renderAll(); } };
+$('#resetBtn').onclick=()=>ask('Reset the timetable to the original plan? Bills are kept. You can Undo.','Reset').then(ok=>{ if(ok){ commit(()=>{ const keep=S.expenses; S=JSON.parse(JSON.stringify(seed)); S.expenses=keep; }); renderAll(); } });
 $('#printBtn').onclick=()=>window.print();
 
 let dayIdx=0;
@@ -1855,8 +1909,8 @@ function renderStays(){
   }).join('');
 }
 $('#staysGrid').addEventListener('change',e=>{ const t=e.target; if(t.dataset.s===undefined) return; commit(()=>S.stays[t.dataset.s][t.dataset.k]=t.value); renderStays(); renderPlan(); });
-$('#staysGrid').addEventListener('click',e=>{ const b=e.target.closest('[data-del-stay]'); if(!b) return; const i=+b.dataset.delStay; if(!confirm('Remove '+S.stays[i].name+'?')) return;
-  commit(()=>{ S.stays.splice(i,1); S.days.forEach(d=>{ if(d.stay===i) d.stay=-1; else if(d.stay>i) d.stay--; }); }); renderAll(); });
+$('#staysGrid').addEventListener('click',e=>{ const b=e.target.closest('[data-del-stay]'); if(!b) return; const i=+b.dataset.delStay; ask('Remove '+S.stays[i].name+'?','Remove').then(ok=>{ if(!ok) return;
+  commit(()=>{ S.stays.splice(i,1); S.days.forEach(d=>{ if(d.stay===i) d.stay=-1; else if(d.stay>i) d.stay--; }); }); renderAll(); }); });
 $('#addStayBtn').onclick=()=>{ commit(()=>S.stays.push({name:'🏠 Stay '+(S.stays.length+1),dates:'',location:'',people:'',link:''})); renderStays(); };
 
 /* ---------- food ---------- */
@@ -1892,7 +1946,7 @@ $('#foodGrid').addEventListener('click',e=>{
   if(b.dataset.slot) openSlot(+b.dataset.slot);
   else if(b.dataset.visit){ const i=+b.dataset.visit; commit(()=>S.food[i].visited=!S.food[i].visited); renderFood(); }
   else if(b.dataset.edit) openFood(+b.dataset.edit);
-  else if(b.dataset.del){ const i=+b.dataset.del; if(confirm('Remove '+S.food[i].name+'?')){ commit(()=>S.food.splice(i,1)); renderChips(); renderFood(); } }
+  else if(b.dataset.del){ const i=+b.dataset.del; ask('Remove '+S.food[i].name+'?','Remove').then(ok=>{ if(ok){ commit(()=>S.food.splice(i,1)); renderChips(); renderFood(); } }); }
 });
 function openFood(i){
   editIdx=i; const f=i>=0?S.food[i]:{area:area!=='all'&&area!=='fav'?area:S.areas[0].id,name:'',cuisine:'',best:'',price:'₹₹',rating:'',note:''};
@@ -2016,12 +2070,12 @@ $('#v-money').addEventListener('change',e=>{ const t=e.target, d=t.dataset;
   else if(t.id==='e-filter'){ expFilter=t.value; renderMoney(); }
 });
 $('#v-money').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
-  if(b.id==='addCat'){ const l=prompt('Category name (you can start with an emoji)'); if(l) { commit(()=>S.budget.cats.push({id:'c'+Date.now().toString(36),label:l,amt:0})); renderMoney(); fillExpForm(null); } }
+  if(b.id==='addCat'){ ask('New category name (you can start with an emoji)','Add',true).then(l=>{ if(l){ commit(()=>S.budget.cats.push({id:'c'+Date.now().toString(36),label:l,amt:0})); renderMoney(); fillExpForm(null); } }); }
   else if(b.id==='fuelToBudget'){ commit(()=>{ const c=S.budget.cats.find(c=>c.id==='fuel'); if(c) c.amt=Math.round(fuelEst().cost/100)*100; }); renderMoney(); toast('Fuel budget updated'); }
   else if(b.id==='addPerson'){ commit(()=>S.people.push('Person '+(S.people.length+1))); renderMoney(); fillExpForm(null); }
   else if(b.id==='csvBtn'){ const r=[['Date','What','Category','Paid by','Split','Mode','Amount']].concat(S.expenses.map(e=>[e.date,e.desc,catLabel(e.cat),S.people[e.by],e.split.map(i=>S.people[i]).join(' + '),e.mode,e.amt]));
     download('goa-expenses.csv','\ufeff'+r.map(x=>x.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv'); }
-  else if(b.dataset.ed){ if(confirm('Delete this expense?')){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.ed)); renderMoney(); } }
+  else if(b.dataset.ed){ ask('Delete this expense?','Delete').then(ok=>{ if(ok){ commit(()=>S.expenses=S.expenses.filter(x=>x.id!==b.dataset.ed)); renderMoney(); } }); }
   else if(b.dataset.ee){ editExp=b.dataset.ee; fillExpForm(S.expenses.find(x=>x.id===editExp)); $('#e-amt').scrollIntoView({behavior:'smooth',block:'center'}); }
 });
 
@@ -2081,10 +2135,27 @@ $('#undoBtn').onclick=()=>{ if(!history.length){ toast('Nothing to undo'); retur
 $('#themeBtn').onclick=()=>{ const r=document.documentElement; const dark = r.dataset.theme ? r.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; r.dataset.theme=dark?'light':'dark'; try{localStorage.setItem(KEY+'.theme',r.dataset.theme);}catch(e){} };
 try{ const th=localStorage.getItem(KEY+'.theme'); if(th) document.documentElement.dataset.theme=th; }catch(e){}
 
-function download(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
-$('#exportBtn').onclick=()=>download('goa-trip.json',JSON.stringify(S,null,1),'application/json');
+async function download(name,text,type){
+  try{ if(window.claude&&claude.use){ const dl=await claude.use('downloads'); if(dl){ await dl.save({filename:name,data:text}); return; } } }catch(e){ if(e&&e.code&&e.code!=='unavailable'){ return; } }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+async function shareMyBills(){
+  const who=((window.TripSync&&TripSync.user())||'phone').replace(/[^\w-]+/g,'_');
+  const name=`goa-trip_${who}_${new Date().toISOString().slice(0,10)}.json`, text=JSON.stringify(S,null,1);
+  try{ const file=new File([text],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Goa trip bills',text:`My Goa trip bills (${(S.expenses||[]).length}) — open the planner → 📥 Add bills from a file`}); return; } }
+  catch(err){ if(err&&err.name==='AbortError') return; }
+  download(name,text,'application/json'); toast('📤 Saved '+name+' — send it on WhatsApp');
+}
+$('#exportBtn').onclick=shareMyBills;
 $('#importBtn').onclick=()=>$('#importFile').click();
-$('#importFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const d=JSON.parse(rd.result); if(!d.days||!d.cols) throw 0; commit(()=>S=d); renderAll(); toast('Imported'); }catch(err){ toast('Not a valid trip file'); } }; rd.readAsText(f); e.target.value=''; };
+$('#importFile').onchange=e=>{ const files=[...e.target.files]; if(!files.length) return; let total=0, skipped=0, bad=0, done=0;
+  files.forEach(f=>{ const rd=new FileReader(); rd.onload=()=>{
+    try{ const d=JSON.parse(rd.result); const src = Array.isArray(d)?{expenses:d}:d; if(!src||!(Array.isArray(src.expenses)||Array.isArray(src.days))) throw 0;
+      const j=TripSync.joinBills(S,src); total+=j.added; skipped+=j.skipped; if(j.added){ commit(()=>{ S=j.state; }); migrate(); } }
+    catch(err){ bad++; }
+    if(++done===files.length){ renderAll(); if(document.querySelector('#v-history.on')) renderHistory();
+      toast(bad&&!total ? '⚠️ Not a trip/bills file' : `📥 Added ${total} new bill(s)/place(s)`+(skipped?` · ${skipped} already here`:'')); }
+  }; rd.readAsText(f); }); e.target.value=''; };
 $('#saveHtmlBtn').onclick=()=>{
   S.savedAt=Date.now(); save();
   const json=JSON.stringify(S,null,1).replace(/</g,'\\u003c');
@@ -2105,6 +2176,7 @@ function renderHistory(){
 }
 function loadCloud(){
   const box=$('#hxCloud');
+  if(window.TripSync&&TripSync.mode&&TripSync.mode()==='db'){ box.innerHTML='<p class="muted">✅ This plan is <b>shared live</b>. Every change is stored instantly online, and everyone invited sees the same bills. Use <b>⬇ Download the current data</b> below for your own Excel/CSV copy.</p>'; $('#hxSnapNow').hidden=true; $('#hxRefresh').hidden=true; return; }
   if(!window.TripSync||!TripSync.configured()){ box.innerHTML='<p class="muted">Cloud backup isn’t connected on this phone (see <b>docs/SETUP.md</b>, or tap the sync pill at the top). Restore points on this phone still work.</p>'; return; }
   box.innerHTML='<p class="muted">Loading snapshots…</p>';
   TripSync.api('snapshots').then(r=>{
@@ -2138,9 +2210,31 @@ $('#v-history').addEventListener('click',e=>{ const b=e.target.closest('button')
 });
 $('#hx-csv').onclick=()=>{ if(hxState) download('goa-trip_bills_'+stamp()+'.csv','\ufeff'+TripData.toCSV(TripData.tables(hxState).Expenses),'text/csv'); };
 $('#hx-json').onclick=()=>{ if(hxState) download('goa-trip_version_'+stamp()+'.json',JSON.stringify(hxState,null,1),'application/json'); };
-$('#hx-restore').onclick=()=>{ if(!hxState) return; if(!confirm('Restore this version for everyone? (Your current version is kept as a restore point, so you can undo this.)')) return;
+$('#hx-restore').onclick=async()=>{ if(!hxState) return; if(!(await ask('Restore this version for everyone? Your current version is kept as a restore point, so you can undo this.','Restore'))) return;
   if(window.TripSync) TripSync.saveLocalVersion(true);
   commit(()=>{ S=JSON.parse(JSON.stringify(hxState)); }); migrate(); close(); renderAll(); renderHistory(); toast('↺ Version restored'); };
+
+/* ---------- 🛟 recover lost bills ---------- */
+let rescue=[];
+function scanLostBills(){
+  const have=new Set((S.expenses||[]).map(e=>String(e.id))), found=new Map();
+  const add=(e,people,src,t)=>{ if(!e||e.id==null||have.has(String(e.id))) return; const k=String(e.id), cur=found.get(k);
+    if(!cur||(t||0)>(cur.t||0)) found.set(k,{e,people:people||S.people,src,t:t||0}); };
+  if(window.TripSync){
+    Object.values(TripSync.vault()||{}).forEach(v=>add(v.e,v.people,'bill vault',v.seen));
+    (TripSync.localVersions()||[]).forEach(v=>(v.state&&v.state.expenses||[]).forEach(e=>add(e,v.state.people,'restore point '+new Date(v.t).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}),v.t)));
+  }
+  ['.broken','.base'].forEach(sfx=>{ try{ const s=JSON.parse(localStorage.getItem(KEY+sfx)); (s&&s.expenses||[]).forEach(e=>add(e,s.people,sfx==='.broken'?'damaged copy':'last shared copy',s.savedAt)); }catch(e){} });
+  rescue=[...found.values()].sort((a,b)=>String(a.e.date).localeCompare(String(b.e.date)));
+  const box=$('#rescueList');
+  if(!rescue.length){ box.innerHTML='<p class="muted">✅ No lost bills found on this phone — every bill it ever saved is in the plan. If bills were entered on another phone, they are on that phone: use 📤 Send my bills there.</p>'; $('#rescueAdd').hidden=true; return; }
+  box.innerHTML=`<p class="muted">Found <b>${rescue.length}</b> bill(s) · ${inr(rescue.reduce((s,x)=>s+(+x.e.amt||0),0))}</p>`+rescue.map((x,i)=>`<label class="hx-row" style="grid-template-columns:auto 1fr auto;cursor:pointer"><input type="checkbox" data-ri="${i}" checked style="width:auto"><div><b>${esc(x.e.desc||'Bill')}</b><small>${esc(x.e.date)}${x.e.place?' · 📍'+esc(x.e.place):''} · paid by ${esc((x.people||[])[x.e.by]||'?')} · from ${esc(x.src)}</small></div><b>${inr(x.e.amt)}</b></label>`).join('');
+  $('#rescueAdd').hidden=false;
+}
+$('#rescueScan').onclick=scanLostBills;
+$('#rescueAdd').onclick=()=>{ const pick=[...document.querySelectorAll('#rescueList [data-ri]:checked')].map(c=>rescue[+c.dataset.ri].e);
+  if(!pick.length){ toast('Tick at least one bill'); return; }
+  commit(()=>{ S=TripSync.joinBills(S,{expenses:pick}).state; }); renderAll(); scanLostBills(); toast('➕ '+pick.length+' bill(s) added back'); };
 
 function renderAll(){
   const parts=[renderHeader,renderPlan,renderStays,renderChips,renderFood,renderMoney,renderCar,renderNotes,()=>{ if(!editExp) fillExpForm(null); }];

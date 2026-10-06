@@ -23,7 +23,7 @@
   var NS = 'goaTripPlanner.v1';
   var K = {
     key: NS + '.passcode', user: NS + '.user', base: NS + '.base', rev: NS + '.rev', pending: NS + '.pending',
-    versions: NS + '.versions', last: NS + '.lastSync', client: NS + '.client', offline: NS + '.offlineOnly'
+    versions: NS + '.versions', vault: NS + '.billVault', last: NS + '.lastSync', client: NS + '.client', offline: NS + '.offlineOnly'
   };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -147,6 +147,14 @@
       if (!r || !r.ok) throw new Error((r && r.error) || 'Could not load trip data');
       if (r.unchanged) { ok(r); return; }
       if (!r.state) { next = 'push'; setPending(true); return; } // empty backend → upload ours
+      if (first && !st.base) {
+        var mine = hooks.get(), joined = joinBills(r.state, mine);
+        if (joined.added) {
+          setBase(r.state, r.rev); hooks.set(joined.state, 'merge'); next = 'push';
+          hooks.toast('➕ Added ' + joined.added + ' bill(s)/place(s) from this phone to the shared plan');
+          return;
+        }
+      }
       if (st.pending && st.base) {
         var merged = merge3(st.base, hooks.get(), r.state);
         setBase(r.state, r.rev); hooks.set(merged, 'merge'); next = 'push'; return;
@@ -186,8 +194,9 @@
         }
         if (r && r.guard) {
           st.busy = false;
-          if (window.confirm('⚠️ ' + r.error + '\n\nPress OK to save anyway, or Cancel to reload the shared version.')) return push(true);
-          setPending(false); return pull(true);
+          var askFn = window.TripAsk || function (m) { return Promise.resolve(window.confirm(m)); };
+          return askFn('⚠️ ' + r.error + ' Save anyway, or reload the shared version?', 'Save anyway').then(function (yes) {
+            if (yes) return push(true); setPending(false); return pull(true); });
         }
         throw new Error((r && r.error) || 'Save failed');
       });
@@ -201,23 +210,173 @@
 
   function dirty() {
     st.seq++;
+    vaultAdd(hooks.get());
     saveLocalVersion();
+    if (D) { if (D.readonly) { setStatus('readonly'); return; } setPending(true); setStatus('pending'); if (D.firstDone) dbSchedule(); return; }
     if (!configured()) { setStatus('local'); return; }
     setPending(true); setStatus('pending'); schedulePush();
   }
 
   /* ---------------- on-phone restore points ---------------- */
   function localVersions() { return lsJSON(K.versions) || []; }
-  function saveLocalVersion(force) {
-    var s = hooks.get(); if (!s) return;
+  function saveLocalVersion(force, stateOverride, byLabel) {
+    var s = stateOverride || hooks.get(); if (!s) return;
     var list = localVersions(), last = list[0];
     var gap = (CFG.LOCAL_VERSION_MINUTES || 10) * 60000;
     if (!force && last && Date.now() - last.t < gap) return;
     if (last && eq(last.state, s)) return;
     var sum = window.TripData ? TripData.summary(s) : {};
-    list.unshift({ t: Date.now(), by: user() || 'this phone', bills: sum.bills, total: sum.total, state: clone(s) });
+    list.unshift({ t: Date.now(), by: byLabel || user() || 'this phone', bills: sum.bills, total: sum.total, state: clone(s) });
     list = list.slice(0, CFG.LOCAL_VERSIONS_KEEP || 20);
     while (list.length && !lsSet(K.versions, JSON.stringify(list))) list.pop(); // storage full → drop oldest
+  }
+
+  /* ---------------- bill vault: every bill ever saved on this phone ----------------
+     Kept separately from the plan, so a bill survives even if the plan itself is
+     overwritten. Deleting a bill in the planner does NOT remove it from the vault;
+     the History tab's "Recover lost bills" compares the vault with the plan. */
+  function vault() { return lsJSON(K.vault) || {}; }
+  function vaultAdd(s) {
+    if (!s || !Array.isArray(s.expenses) || !s.expenses.length) return;
+    var v = vault(), changed = false;
+    s.expenses.forEach(function (e) {
+      if (!e || e.id == null) return;
+      var key = String(e.id), cur = v[key];
+      if (!cur || !eq(cur.e, e)) { v[key] = { e: clone(e), seen: Date.now(), people: (s.people || []).slice() }; changed = true; }
+    });
+    if (changed) lsSet(K.vault, JSON.stringify(v));
+  }
+
+  /** Add bills (by id) and places (by name) from `from` into a copy of `into`. Never removes anything. */
+  function joinBills(into, from) {
+    var out = clone(into) || {}, added = 0, skipped = 0;
+    out.expenses = out.expenses || []; out.places = out.places || [];
+    var ids = {}; out.expenses.forEach(function (e) { ids[String(e.id)] = 1; });
+    ((from && from.expenses) || []).forEach(function (e) {
+      if (!e) return;
+      if (e.id != null && ids[String(e.id)]) { skipped++; return; }
+      var c = clone(e); if (c.id == null) c.id = 'imp' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      ids[String(c.id)] = 1; out.expenses.push(c); added++;
+    });
+    var names = {}; out.places.forEach(function (p) { names[String(p.name).toLowerCase()] = 1; });
+    ((from && from.places) || []).forEach(function (p) {
+      if (!p || !p.name || names[String(p.name).toLowerCase()]) return;
+      names[String(p.name).toLowerCase()] = 1; out.places.push(clone(p)); added++;
+    });
+    return { state: out, added: added, skipped: skipped };
+  }
+
+
+  /* ---------------- live shared mode (published as a Claude page) ----------------
+     The plan lives in one shared document ("trip/plan") and every bill is its own
+     document ("bills/<id>"), so two people adding bills at the same moment never
+     touch the same record. Changes from other people arrive live and are merged
+     with what this phone has (3-way merge), never blindly replaced. */
+  var D = null;
+  function dbId(id) { return (String(id).replace(/[^A-Za-z0-9_\-.~:@+]/g, '_').replace(/^\.+$/, '_') || 'x').slice(0, 180); }
+  function planOf(s) { var p = clone(s) || {}; delete p.expenses; delete p.savedAt; return p; }
+  function noSaved(s) { var p = clone(s) || {}; delete p.savedAt; return p; }
+  function billsMap(list) { var m = {}; (list || []).forEach(function (e) { if (e && e.id != null) m[dbId(e.id)] = e; }); return m; }
+  function sortBills(a) {
+    return a.sort(function (x, y) {
+      return String(x.date).localeCompare(String(y.date)) || ((x.slot == null ? 99 : x.slot) - (y.slot == null ? 99 : y.slot)) || String(x.id).localeCompare(String(y.id));
+    });
+  }
+  function remoteState() {
+    var s = clone(D.remotePlan) || {};
+    s.expenses = sortBills(Object.keys(D.remoteBills).map(function (k) { return clone(D.remoteBills[k]); }));
+    return s;
+  }
+  function setReadonly() { if (!D) return; D.readonly = true; setPending(false); setStatus('readonly'); }
+
+  function startDb(db, ucap) {
+    st.mode = 'db';
+    D = { db: db, planRef: db.doc('trip/plan'), bills: db.collection('bills'), remotePlan: undefined, remoteBills: undefined,
+      base: null, writing: false, again: false, readonly: false, timer: null, firstDone: false };
+    setStatus('checking');
+    if (ucap) {
+      try { ucap.can('data.write').then(function (c) { if (c === false) setReadonly(); }, function () { }); } catch (e) { }
+      if (!user()) { try { ucap.name().then(function (n) { if (n && !user()) { lsSet(K.user, n); setStatus(st.status); } }, function () { }); } catch (e) { } }
+    }
+    var onErr = function (e) { st.error = (e && e.message) || 'Connection lost'; setStatus(e && e.code === 'revoked' ? 'readonly' : 'error', st.error); };
+    D.planRef.onSnapshot(function (snap) {
+      var d = snap.exists ? snap.data() : null;
+      D.remotePlan = d && d.plan ? d.plan : null;
+      if (d && d.by) st.updatedBy = d.by;
+      reconcileDb();
+    }, onErr);
+    D.bills.onSnapshot(function (qs) {
+      var m = {}; qs.docs.forEach(function (d) { var b = d.data() && d.data().bill; if (b) m[d.id] = b; });
+      D.remoteBills = m; reconcileDb();
+    }, onErr);
+  }
+
+  function reconcileDb() {
+    if (!D || D.remotePlan === undefined || D.remoteBills === undefined) return; // wait for both first answers
+    var local = hooks.get(); if (!local) return;
+    var remote = remoteState(), merged;
+    if (!D.base) {
+      if (!D.remotePlan && !remote.expenses.length) merged = clone(local);   // empty shared trip: this phone starts it
+      else if (!D.remotePlan) merged = joinBills(local, remote).state;          // bills exist but no plan yet
+      else merged = joinBills(remote, local).state;                             // keep the shared plan, add this phone's own bills
+    } else {
+      merged = merge3(D.base, noSaved(local), remote);
+    }
+    D.base = remote;
+    if (!eq(noSaved(merged), noSaved(local))) {
+      merged.savedAt = local.savedAt || Date.now();
+      hooks.set(merged, 'remote');
+      if (D.firstDone && st.updatedBy && st.updatedBy !== user()) hooks.toast('🔄 Updated by ' + st.updatedBy);
+    }
+    D.firstDone = true;
+    var cur = hooks.get();
+    if (!D.readonly && (!eq(planOf(cur), planOf(remote)) || !eq(billsMap(cur.expenses), D.remoteBills))) { setPending(true); dbSchedule(0); }
+    else if (!D.writing) { st.last = Date.now(); setStatus(D.readonly ? 'readonly' : 'synced'); }
+  }
+
+  function dbSchedule(ms) { clearTimeout(D.timer); D.timer = setTimeout(dbPush, ms == null ? 600 : ms); }
+  function dbPush() {
+    if (!D || D.readonly || !D.firstDone) return;
+    if (D.writing) { D.again = true; return; }
+    D.writing = true; setStatus('saving');
+    var local = clone(hooks.get()), plan = planOf(local), bm = billsMap(local.expenses);
+    var basePlan = D.base ? planOf(D.base) : null, baseBills = D.base ? billsMap(D.base.expenses) : {};
+    var who = user() || 'someone', at = new Date().toISOString(), ops = [];
+    if (!eq(plan, basePlan)) ops.push(function () { return D.planRef.set({ plan: plan, by: who, at: at }); });
+    Object.keys(bm).forEach(function (k) { if (!eq(bm[k], baseBills[k])) ops.push(function () { return D.bills.doc(k).set({ bill: bm[k], by: who, at: at }); }); });
+    Object.keys(baseBills).forEach(function (k) { if (!(k in bm)) ops.push(function () { return D.bills.doc(k).delete(); }); });
+    var chain = Promise.resolve();
+    ops.forEach(function (f) { chain = chain.then(f); });
+    chain.then(function () {
+      D.base = noSaved(local); D.writing = false; D.wrote = true;
+      st.last = Date.now(); lsSet(K.last, String(st.last));
+      if (D.again) { D.again = false; dbPush(); return; }
+      setPending(false); setStatus('synced');
+    }, function (e) {
+      D.writing = false;
+      var code = e && e.code;
+      if (code === 'invalid_argument' && !D.wrote) { setReadonly(); return; }
+      if (code === 'quota_exceeded') { st.error = 'Shared storage is full: ' + (e.message || ''); setStatus('error', st.error); return; }
+      if (code === 'revoked') { setReadonly(); return; }
+      setStatus(navigator.onLine === false ? 'offline' : 'pending');
+      D.timer = setTimeout(dbPush, 5000);                     // keep trying; nothing is lost meanwhile
+    });
+  }
+
+  /* ---------------- multi-tab safety ----------------
+     Phones keep old tabs alive. Before a tab saves, check whether another tab saved
+     since this tab last read the data; if so, 3-way merge instead of overwriting. */
+  function mergeFromStorage(storageKey, current, baseStr) {
+    var raw = null; try { raw = localStorage.getItem(storageKey); } catch (e) { }
+    if (!raw || raw === baseStr) return { state: current, merged: false };
+    var stored; try { stored = JSON.parse(raw); } catch (e) { return { state: current, merged: false }; }
+    if (!stored || !Array.isArray(stored.days)) return { state: current, merged: false };
+    var base = null; try { base = baseStr ? JSON.parse(baseStr) : null; } catch (e) { }
+    vaultAdd(stored);
+    var out = merge3(base || {}, current, stored);
+    var lost = (stored.expenses || []).length > (out.expenses || []).length;
+    if (lost) saveLocalVersion(true, stored, 'safety copy before deleting bills');
+    return { state: out, merged: true };
   }
 
   function download(name, text, mime) {
@@ -231,7 +390,7 @@
   var LABEL = {
     local: ['📱', 'Saved on this phone'], synced: ['✅', 'Synced'], saving: ['⏳', 'Saving…'], checking: ['🔄', 'Checking…'],
     pending: ['🕓', 'Waiting to sync'], offline: ['📴', 'Offline — saved on phone'], error: ['⚠️', 'Sync problem — tap'],
-    auth: ['🔒', 'Enter trip passcode']
+    auth: ['🔒', 'Enter trip passcode'], readonly: ['👀', 'View only — ask Akshay to invite you as Editor']
   };
   var pill, dlg;
   function ago(t) {
@@ -242,7 +401,7 @@
   function setStatus(s, msg) {
     st.status = s; if (msg) st.error = msg;
     if (!pill) return;
-    var l = LABEL[s] || LABEL.local;
+    var l = (s === 'synced' && st.mode === 'db') ? ['✅', 'Shared live'] : (LABEL[s] || LABEL.local);
     pill.className = 'ts-pill ts-' + s;
     pill.innerHTML = '<span>' + l[0] + '</span><span class="ts-t">' + l[1] +
       (s === 'synced' ? ' · ' + ago(st.last) : '') + (user() ? ' · ' + esc(user()) : '') + '</span>';
@@ -281,7 +440,11 @@
     var people = (hooks.people() || []).filter(Boolean);
     var me = user();
     var known = people.indexOf(me) >= 0;
-    var setupNote = !CFG.API_URL
+    var setupNote = st.mode === 'db'
+      ? (st.status === 'readonly'
+        ? '<p class="ts-note">You can <b>see</b> the shared plan but not change it. Ask the trip owner to share this page with your email as <b>Editor</b>.</p>'
+        : '<p class="ts-note">✅ <b>Shared live.</b> Everyone invited sees the same plan and bills within seconds. Pick your name so bills show who added them.</p>')
+      : !CFG.API_URL
       ? '<p class="ts-note">Sharing is <b>not switched on yet</b> — edits are saved on this phone only. The trip owner follows <b>docs/SETUP.md</b> (≈20 min) and pastes the backend URL into <code>assets/config.js</code>.</p>'
       : (lsGet(K.offline) === '1' ? '<p class="ts-note">This phone is in <b>offline-only</b> mode.</p>' : '');
     dlg.innerHTML = '<div class="ts-dlg" role="dialog" aria-label="Trip sync">' +
@@ -292,16 +455,16 @@
       people.map(function (p) { return '<option ' + (p === me ? 'selected' : '') + '>' + esc(p) + '</option>'; }).join('') +
       '<option value="__other" ' + (me && !known ? 'selected' : '') + '>Someone else…</option></select>' +
       '<input id="tsOther" placeholder="Your name" value="' + (me && !known ? esc(me) : '') + '" style="margin-top:6px;display:' + (me && !known ? 'block' : 'none') + '">' +
-      (CFG.API_URL ? '<label>Trip passcode</label><input id="tsKey" type="password" autocomplete="current-password" placeholder="Ask Akshay" value="' + esc(key()) + '">' : '') +
+      (CFG.API_URL && st.mode !== 'db' ? '<label>Trip passcode</label><input id="tsKey" type="password" autocomplete="current-password" placeholder="Ask Akshay" value="' + esc(key()) + '">' : '') +
       '<div class="ts-err" id="tsErr">' + (st.status === 'error' || st.status === 'auth' ? esc(st.error) : '') + '</div>' +
-      (CFG.API_URL ? '<div class="ts-kv"><span>Status</span><b>' + (LABEL[st.status] || LABEL.local).join(' ') + '</b>' +
+      (CFG.API_URL && st.mode !== 'db' ? '<div class="ts-kv"><span>Status</span><b>' + (LABEL[st.status] || LABEL.local).join(' ') + '</b>' +
         '<span>Last sync</span><span>' + ago(st.last) + '</span>' +
         '<span>Version</span><span>rev ' + st.rev + (st.updatedBy ? ' · last saved by ' + esc(st.updatedBy) : '') + '</span>' +
         '<span>Unsynced</span><span>' + (st.pending ? 'yes — will upload automatically' : 'none') + '</span></div>' : '') +
       '<div class="ts-row">' +
-      (CFG.API_URL ? '<button id="tsOff">' + (lsGet(K.offline) === '1' ? 'Go online' : 'Use offline only') + '</button>' : '') +
+      (CFG.API_URL && st.mode !== 'db' ? '<button id="tsOff">' + (lsGet(K.offline) === '1' ? 'Go online' : 'Use offline only') + '</button>' : '') +
       '<button id="tsClose">' + (first === true ? 'Later' : 'Close') + '</button>' +
-      (CFG.API_URL ? '<button id="tsSync">Sync now</button>' : '') +
+      (CFG.API_URL && st.mode !== 'db' ? '<button id="tsSync">Sync now</button>' : '') +
       '<button class="pri" id="tsSave">Save</button></div></div>';
     dlg.classList.add('on');
     var sel = dlg.querySelector('#tsUser'), other = dlg.querySelector('#tsOther');
@@ -321,7 +484,7 @@
     var name = sel.value === '__other' ? other.value.trim() : sel.value;
     if (!name) { err.textContent = 'Please enter your name.'; return; }
     lsSet(K.user, name);
-    if (!k) { closeDialog(); setStatus(st.status); return; }
+    if (!k || st.mode === 'db') { closeDialog(); setStatus(st.status); return; }
     var pass = k.value.trim();
     if (!pass) { err.textContent = 'Enter the trip passcode (ask the trip owner).'; return; }
     var changed = pass !== key(); lsSet(K.key, pass);
@@ -340,6 +503,15 @@
     if (st.started) return; st.started = true;
     hooks = Object.assign(hooks, opts || {});
     injectUI();
+    var cl = window.claude;
+    if (cl && typeof cl.use === 'function') {
+      setStatus('checking');
+      Promise.all([cl.use('db'), cl.use('user')]).then(function (r) { if (r[0]) startDb(r[0], r[1]); else legacyStart(); }, legacyStart);
+      return;
+    }
+    legacyStart();
+  }
+  function legacyStart() {
     if (!configured()) { setStatus('local'); return; } // sharing not set up: no popup, the plan shows straight away
     if (!key() || !user()) { setStatus('auth', 'Enter the trip passcode'); openDialog(true); return; }
     st.started2 = true;
@@ -358,6 +530,8 @@
   window.TripSync = {
     start: start, dirty: dirty, api: api, pull: pull, push: push, merge3: merge3,
     configured: configured, user: user, status: function () { return st.status; }, rev: function () { return st.rev; },
-    localVersions: localVersions, saveLocalVersion: saveLocalVersion, download: download, openDialog: openDialog, config: CFG
+    localVersions: localVersions, saveLocalVersion: saveLocalVersion, download: download, openDialog: openDialog, config: CFG,
+    vault: vault, vaultAdd: vaultAdd, mergeFromStorage: mergeFromStorage, joinBills: joinBills,
+    mode: function () { return st.mode || (configured() ? 'backend' : 'local'); }
   };
 })();
