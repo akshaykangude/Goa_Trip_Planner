@@ -60,7 +60,7 @@ try {
   assert.ok(await until(async () => /Shared live/.test(await pill(A.p))));
   step('first phone starts the shared trip and shows “Shared live”');
   const W = await phone('Wife');
-  assert.equal(await W.p.locator('#planTbl tbody tr').count(), 9);
+  assert.equal(await W.p.locator("#planTbl tbody tr").count(), 10);
   await Promise.all([bill(A.p, '1,3', '1200', 'Lunch at Brittos'), bill(W.p, '1,7', '3000', 'Dinner Thalassa')]);
   assert.ok(await until(async () => (await bills(A.p)) === 'Dinner Thalassa|Lunch at Brittos' && (await bills(W.p)) === 'Dinner Thalassa|Lunch at Brittos'), 'both bills on both phones');
   assert.equal([...store.keys()].filter(k => k.startsWith('bills/')).length, 2);

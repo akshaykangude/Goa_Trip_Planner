@@ -33,7 +33,7 @@ try {
   await bill(A.p, '1,3', '1200', 'Lunch A'); await bill(W.p, '2,8', '4000', 'Club W'); await bill(W.p, '2,3', '800', 'Lunch W');
   const [dl] = await Promise.all([W.p.waitForEvent('download'), W.p.click('#exportBtn')]); const f = path.join(os.tmpdir(), 'wife-bills.json'); await dl.saveAs(f);
   await A.p.setInputFiles('#importFile', f); await A.p.waitForTimeout(400); await A.p.setInputFiles('#importFile', f); await A.p.waitForTimeout(400);
-  assert.equal(await n(A.p), 3); assert.equal(await A.p.locator('#planTbl tbody tr').count(), 9);
+  assert.equal(await n(A.p), 3); assert.equal(await A.p.locator('#planTbl tbody tr').count(), 10);
   step('bills from another phone are added (not replaced), duplicates skipped');
   const R = await phone(); await bill(R.p, '1,3', '500', 'Snacks'); await bill(R.p, '3,7', '2500', 'Dinner');
   await R.p.evaluate(() => { const K = 'goaTripPlanner.v1', s = JSON.parse(localStorage.getItem(K));

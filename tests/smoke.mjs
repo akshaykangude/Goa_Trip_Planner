@@ -73,7 +73,7 @@ try {
   await login(W.page, 'Wife');
   await synced(W.page);
   assert.equal(await W.page.evaluate(() => document.documentElement.clientWidth), 1280, 'phones open in PC view by default');
-  assert.equal(await W.page.locator('#planTbl tbody tr').count(), 9, 'timetable visible in PC view');
+  assert.equal(await W.page.locator('#planTbl tbody tr').count(), 10, 'timetable visible in PC view');
   await W.page.click('#viewBtn');                       // switch to the phone layout (remembered)
   await W.page.waitForSelector('#planTbl tbody tr'); await synced(W.page);
   assert.equal(await W.page.evaluate(() => document.documentElement.scrollWidth), 390, 'phone view: no sideways scroll');
@@ -193,7 +193,7 @@ try {
   await L.page.goto(plain.base + '/index.html');
   await L.page.waitForSelector('#planTbl tbody tr');
   assert.equal(await L.page.locator('.ts-modal.on').count(), 0, 'no popup covers the plan when sync is off');
-  assert.equal(await L.page.locator('#planTbl tbody tr').count(), 9, 'all 9 days of the timetable are shown');
+  assert.equal(await L.page.locator('#planTbl tbody tr').count(), 10, 'all 10 days of the timetable are shown');
   await L.page.locator('td.cell[data-r="0"][data-c="7"]').hover(); await L.page.click('[data-bill="0,7"]');
   await L.page.fill('.billin', '500'); await L.page.fill('.billdesc', 'Dinner at Baga'); await L.page.click('.billok');
   await L.page.reload(); await L.page.waitForSelector('#planTbl .cost');
