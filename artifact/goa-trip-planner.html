@@ -2258,7 +2258,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TripData;
    "note": "Kayaking in the lagoon — carry a dry bag",
    "visited": false
   }
- ]
+ ],
+ "planRev": 2
 }
 </script>
 
@@ -2283,7 +2284,19 @@ if(local && !validState(local)){ try{ localStorage.setItem(KEY+'.broken', JSON.s
 
 function migrate(){ Object.keys(seed).forEach(k=>{ if(S[k]===undefined){ S[k]=JSON.parse(JSON.stringify(seed[k]));
   if(k==='places') S.days.forEach(d=>{ const sd=seed.days.find(x=>x.date===d.date); if(sd&&sd.place&&!d.place) d.place=JSON.parse(JSON.stringify(sd.place)); }); } }); }
+const seedDaysAdded = mergeSeedDays();   // must run before migrate(), which would copy the new planRev over
 migrate();
+if(seedDaysAdded){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+/* When an update adds days to the built-in plan (e.g. 4 Oct), merge them into the copy this
+   browser already saved. Existing days, edits and bills are never touched. */
+function mergeSeedDays(){
+  if((S.planRev||1)>=(seed.planRev||1)) return false;
+  const have=new Set(S.days.map(d=>d.date)); let added=0;
+  seed.days.forEach(d=>{ if(!have.has(d.date)){ S.days.push(JSON.parse(JSON.stringify(d))); added++; } });
+  S.days.sort((a,b)=>a.date.localeCompare(b.date));
+  if(added && seed.subtitle && S.subtitle && S.subtitle!==seed.subtitle && /\d+ \w{3}$/.test(S.subtitle)) S.subtitle=seed.subtitle;
+  S.planRev=seed.planRev; return true;
+}
 try{ baseStr=localStorage.getItem(KEY); }catch(e){}
 if(window.TripSync&&TripSync.vaultAdd) TripSync.vaultAdd(S);
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}

@@ -42,6 +42,16 @@ try {
   await R.p.reload(); await R.p.waitForSelector('#planTbl tbody tr');
   await R.p.evaluate(() => document.querySelector('.tab[data-v="history"]').click()); await R.p.click('#rescueScan'); await R.p.click('#rescueAdd'); await R.p.waitForTimeout(300);
   assert.equal(await n(R.p), 2); step('🛟 Recover lost bills restores bills wiped by the old bug');
+  const O = await phone();   // a browser that saved the plan BEFORE 4 Oct was added
+  await O.p.evaluate(() => { const K = 'goaTripPlanner.v1', s = JSON.parse(document.getElementById('seed').textContent); s.savedAt = Date.now();
+    s.days = s.days.filter(d => d.date !== '2026-10-04'); delete s.planRev; s.subtitle = s.subtitle.replace('4 Oct', '3 Oct');
+    s.days[0].cells[0] = 'MY EDIT'; s.expenses = [{ id: 'keep1', date: '2026-09-26', cat: 'food', amt: 450, desc: 'Kept bill', by: 0, split: [0, 1], mode: 'UPI', slot: 3 }];
+    localStorage.setItem(K, JSON.stringify(s)); });
+  await O.p.reload(); await O.p.waitForSelector('#planTbl tbody tr');
+  assert.equal(await O.p.locator('#planTbl tbody tr').count(), 10);
+  assert.match(await O.p.textContent('#planTbl'), /MY EDIT/); assert.match(await O.p.textContent('#subtitle'), /4 Oct/);
+  assert.equal(await n(O.p), 1);
+  step('an older saved copy gets the new 4 Oct day; its own edits and bills are kept');
   assert.deepEqual(errors, []); step('no JavaScript errors');
   console.log(`  ${pass} passed`);
 } catch (e) { console.error('  ✗ FAILED after', pass, 'steps:', e.message); if (errors.length) console.error(errors); process.exitCode = 1; }
